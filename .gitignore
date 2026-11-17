@@ -1,0 +1,18 @@
+# version backups / snapshots (kept locally only)
+v1/
+v2/
+v3/
+v4/
+*.blend1
+*.blend@
+# full-res glTF export is >100 MB (GitHub limit) - regenerate with src/scene.py; web/model_web.glb is committed
+model.glb
+# intermediate renders (only hero + close-up are kept)
+renders/*
+!renders/hero.png
+!renders/closeup.png
+# python / misc
+__pycache__/
+*.pyc
+dist/
+.DS_Store
