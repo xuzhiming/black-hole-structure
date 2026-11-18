@@ -27,6 +27,7 @@ jobs:
           cp web/preview.html dist/index.html
           cp web/preview.html dist/preview.html
           cp web/model_web.glb dist/model_web.glb
+          cp model_draco.glb dist/model_draco.glb
           find dist -type f -size +25M -print -exec false {} + || { echo "::error::file exceeds Cloudflare Pages 25 MiB limit"; exit 1; }
           ls -la dist
 

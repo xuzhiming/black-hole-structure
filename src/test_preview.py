@@ -13,6 +13,7 @@ with sync_playwright() as p:
     t0 = time.time(); pg.goto(url)
     pg.wait_for_function('window.__ready === true', timeout=180000)
     print('ready in %.1fs' % (time.time() - t0))
+    print('gltf extensions:', pg.evaluate('window.__gltfExt'), 'tris:', pg.evaluate('window.__tris'))
     pg.evaluate('window.__setRotate(false)')
     time.sleep(3); pg.screenshot(path=R + 'web/preview_screenshot.png')
     pg.evaluate("window.__goTo('front')"); time.sleep(3); pg.screenshot(path=R + 'web/preview_screenshot_front.png')

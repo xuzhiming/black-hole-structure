@@ -4,6 +4,8 @@ sys.path.insert(0, os.path.dirname(__file__)); import build
 h = hashlib.md5(open(os.path.join(os.path.dirname(__file__), 'build.py'), 'rb').read()).hexdigest()
 cache = f'/tmp/bh_mesh_{h}.pkl'
 V, F, FM, UV, info = pickle.load(open(cache, 'rb')) if os.path.exists(cache) else build.compute()
+DEC = float(os.environ.get('DECIMATE', 0.2)); tris_full = len(F)
+if DEC < 1.0: V, F, FM = pickle.load(open(f'/tmp/bh_dec_{h}_{DEC}.pkl', 'rb'))   # v6: measure the decimated mesh written by scene.py
 lo, hi = V.min(0), V.max(0)
 cv = np.unique(F[FM == build.MAT_CORE].ravel()); gv = np.unique(F[FM == build.MAT_GLOW].ravel())
 C = V[cv]; hc = np.array([C[:, 0].mean(), 0, C[:, 2].mean()])
@@ -21,7 +23,7 @@ mouth_y = float(np.percentile(rimband[:, 1], 5)) if len(rimband) else float('nan
 cm = G[rg < CORE_D_HALF + 0.6] if False else G[rg < 13.6]
 core_mouth_y = float(np.median(cm[cm[:, 1] < np.percentile(cm[:, 1], 10)][:, 1]))   # where the Ø26 tunnel opens
 res = dict(bbox_min=lo.round(3).tolist(), bbox_max=hi.round(3).tolist(), bbox_size=(hi - lo).round(3).tolist(),
-           tris=int(len(F)), verts=int(len(V)),
+           tris=int(len(F)), verts=int(len(V)), tris_full=int(tris_full), decimate_ratio=DEC,
            hole_centre_xz_from_core=[round(float(hc[0]), 2), round(float(hc[2]), 2)],
            core_diameter_measured_4dirs=np.round(dia(C, np.max), 2).tolist(),
            glow_inner_diameter_4dirs=np.round(dia(G, np.min), 2).tolist(),

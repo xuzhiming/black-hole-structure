@@ -3,10 +3,11 @@ v1/
 v2/
 v3/
 v4/
+v5/
 *.blend1
 *.blend@
-# full-res glTF export is >100 MB (GitHub limit) - regenerate with src/scene.py; web/model_web.glb is committed
-model.glb
+# v6: model.glb is decimated (~31 MB) and committed; the DECIMATE=1 full-res export (~112 MB) should not be committed
+model_full.glb
 # intermediate renders (only hero + close-up are kept)
 renders/*
 !renders/hero.png

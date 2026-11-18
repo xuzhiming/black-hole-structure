@@ -119,6 +119,22 @@ me.color_attributes.active_color = ca
 cv = me.attributes.new('Cav', 'FLOAT', 'POINT'); cv.data.foreach_set('value', np.clip(VCAV, 0, 1).astype(np.float32) * 0.5)
 me.validate(); me.update()
 ob = bpy.data.objects.new('BlackHole_Structure', me); scene.collection.objects.link(ob)
+# v6: collapse-decimate 2.48M -> ~0.5M tris (DECIMATE=1 keeps full res), then re-fit the bbox exactly to 100 x 48 x 120
+DEC = float(os.environ.get('DECIMATE', 0.2)); info['tris_full'] = len(me.polygons)
+if DEC < 1.0:
+    lo0, hi0 = V.min(0), V.max(0)
+    keep = np.unique(F[(FM == build.MAT_GLOW) | (FM == build.MAT_CORE)].ravel())     # protect the Ø40 funnel + Ø26 core (hole geometry stays exact)
+    vg = ob.vertex_groups.new(name='BH_KeepHole'); vg.add(keep.tolist(), 1.0, 'REPLACE')
+    md = ob.modifiers.new('Decimate', 'DECIMATE'); md.decimate_type = 'COLLAPSE'; md.ratio = DEC; md.use_collapse_triangulate = True
+    md.vertex_group = vg.name; md.invert_vertex_group = True; md.vertex_group_factor = 10.0
+    bpy.context.view_layer.objects.active = ob; bpy.ops.object.modifier_apply(modifier='Decimate'); me = ob.data
+    co = np.zeros(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', co); co = co.reshape(-1, 3).astype(np.float64)
+    lo1, hi1 = co.min(0), co.max(0); co = lo0 + (co - lo1) * (hi0 - lo0) / (hi1 - lo1)
+    me.vertices.foreach_set('co', co.astype(np.float32).ravel()); me.update(); ob.vertex_groups.remove(ob.vertex_groups['BH_KeepHole'])
+    info['decimate'] = dict(ratio=DEC, drift_before_refit=np.r_[lo1 - lo0, hi1 - hi0].round(4).tolist())
+    Fd = np.zeros(len(me.polygons) * 3, np.int32); me.polygons.foreach_get('vertices', Fd)
+    FMd = np.zeros(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', FMd)
+    pickle.dump((co, Fd.reshape(-1, 3), FMd), open(f'/tmp/bh_dec_{_h}_{DEC}.pkl', 'wb'))
 co = np.zeros(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', co); co = co.reshape(-1, 3)
 lo, hi = co.min(0), co.max(0)
 info.update(bbox_min=lo.tolist(), bbox_max=hi.tolist(), bbox_size=(hi - lo).tolist(), tris=len(me.polygons), verts=len(me.vertices))
@@ -179,9 +195,10 @@ bpy.ops.wm.save_as_mainfile(filepath=ROOT + '/model.blend')
 
 # GLB (geometry + materials only)
 for o in scene.objects: o.select_set(o.type == 'MESH')
-bpy.ops.export_scene.gltf(filepath=ROOT + '/model.glb', export_format='GLB', use_selection=True, export_apply=True,
+GLB_OUT = ROOT + ('/model.glb' if DEC < 1.0 else '/model_full.glb')   # full-res (~112 MB) never overwrites the committed decimated model.glb
+bpy.ops.export_scene.gltf(filepath=GLB_OUT, export_format='GLB', use_selection=True, export_apply=True,
                           export_lights=False, export_cameras=False, export_vertex_color='ACTIVE', export_all_vertex_colors=False, export_image_format='AUTO', export_yup=True)
-print('EXPORTED', os.path.getsize(ROOT + '/model.glb'))
+print('EXPORTED', GLB_OUT, os.path.getsize(GLB_OUT))
 
 if os.environ.get('RENDER', '1') == '1':
     only = os.environ.get('ONLY')

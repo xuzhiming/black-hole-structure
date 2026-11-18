@@ -5,7 +5,7 @@
 根据参考效果图，用 Blender（Python 脚本，bpy 5.3 无界面运行）程序化生成的"黑洞构筑体"3D 模型，附带基于 Three.js 的网页查看器。查看器支持环绕、辉光和中英文尺寸标注。
 A procedural "black hole structure" 3D model generated in Blender (headless bpy 5.3 Python scripts) from a reference sheet, with a Three.js web viewer (orbit, bloom, CN/EN dimension overlay).
 
-规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · 约 248 万三角面 ~2.48M tris。
+规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v6 减面后约 49.7 万三角面 ~497k tris（v5 为 2.48M），网页模型使用 Draco 压缩 · web model is Draco-compressed.
 
 ![contact sheet](contact_sheet.png)
 
@@ -14,24 +14,28 @@ A procedural "black hole structure" 3D model generated in Blender (headless bpy 
 | 路径 Path | 说明 Description |
 |---|---|
 | `src/` | 建模、贴图、场景/渲染、校验、拼图、网页构建脚本 · build / texture / scene+render / verify / contact-sheet / web scripts |
-| `model.blend` | Blender 源文件（完整精度）· Blender source file (full detail) |
+| `model.blend` | Blender 源文件（v6 减面后）· Blender source file (v6, decimated) |
+| `model.glb` | 减面后 glTF，未压缩（30.6 MB）· decimated glTF, uncompressed |
+| `model_draco.glb` | 减面 + Draco 压缩，完整分辨率 PNG 贴图（15.7 MB）· decimated + Draco, full-res textures |
 | `web/preview.html` | 网页查看器（已内嵌压缩模型，可离线打开）· Web viewer (compressed model embedded, works offline) |
-| `web/model_web.glb` | 网页用压缩模型（简化 50% + meshopt + WebP）· Web-optimized model |
+| `web/model_web.glb` | 网页用模型（Draco + 1024 WebP 贴图，5.9 MB）· Web model (Draco + 1024 WebP) |
 | `web/preview_screenshot*.png` | 无界面 Chrome 测试截图 · Headless-Chrome test screenshots |
 | `renders/hero.png`, `renders/closeup.png` | Cycles 透视主图 / 细节特写 · Cycles hero / close-up renders |
-| `contact_sheet.png` | 参考图与 v4 / v5 各视图对比 · Reference vs v4 vs v5 per view |
+| `contact_sheet.png` | 参考图与 v5 / v6 各视图对比 · Reference vs v5 vs v6 per view |
+| `compare_v5_v6.png` | 减面 + Draco 前后对比（渲染与网页截图）· before/after decimation + Draco |
 | `tex/`, `ref/` | 程序化贴图与参考图裁切 · Procedural textures and reference crops |
 | `measure.json`, `verify.json` | 尺寸实测 · Measured dimensions |
 
-完整的 `model.glb`（约 112 MB，超过 GitHub 的 100 MB 上限）未提交，可用下面的命令重新生成。
-The full-res `model.glb` (~112 MB, over GitHub's 100 MB limit) is not committed; regenerate it with the commands below.
+v6 起 `model.glb` 已减面到 30.6 MB，可以直接提交。设 `DECIMATE=1` 运行 `src/scene.py` 可重新生成 248 万面的完整版 `model_full.glb`（约 112 MB，不提交）。
+Since v6 `model.glb` is decimated (30.6 MB) and committed; run `src/scene.py` with `DECIMATE=1` to rebuild the 2.48M-tri full version as `model_full.glb` (~112 MB, ignored).
 
 ## 重新生成 / Rebuild
 
 ```bash
 python3 src/texture.py && SAMPLES=64 python3 src/scene.py   # textures -> mesh -> model.blend / model.glb / renders/
 python3 src/verify.py && python3 src/sheet.py              # verify.json, contact_sheet.png
-bash src/rebuild_web.sh && python3 src/test_preview.py      # web/model_web.glb -> web/preview.html, headless test
+bash src/rebuild_web.sh && python3 src/test_preview.py      # model_draco.glb, web/model_web.glb (Draco) -> web/preview.html, headless test
+python3 src/compare_sheet.py                               # compare_v5_v6.png
 ```
 
 ## 部署 / Deployment
@@ -45,8 +49,25 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 
 ## 版本记录 / Version notes
 
+### v6：减面 + Draco 压缩 / decimation + Draco
+- **减面 Decimation**：Blender Decimate（Collapse，比例 0.2），2,483,108 → 496,621 三角面。Ø40 漏斗与 Ø26 内核用顶点组保护、不减面，减面后再把包围盒精确拉回 100 × 48 × 120 m。实测洞心 Z 58.0、内核 Ø25.94、凹入 18.14 m，与 v5 一致。
+- **Draco**：`gltf-transform draco` 使用默认量化（位置 14 bit）。网页里的 Draco 解码器（wasm + wrapper）直接内嵌在 `preview.html` 中，不依赖 CDN，离线和 file:// 也能打开。
 
-本地备份 `v1/` 至 `v4/` 未提交到仓库（v3 是放弃的分支）。v5 的几何与 v4 完全相同（build.py 未改，网格缓存复用），只调整了明暗和材质。
+| 文件 File | 三角面 Tris | 大小 Size |
+|---|---|---|
+| v5 `model.glb`（完整，未压缩 full, uncompressed） | 2,483,108 | 112.3 MB |
+| v6 `model.glb`（减面，未压缩 decimated, uncompressed） | 496,621 | 30.6 MB |
+| v6 `model_draco.glb`（减面 + Draco decimated + Draco） | 496,621 | 15.7 MB |
+| v6 减面 + meshopt（仅作对比 comparison only） | 496,621 | 16.5 MB |
+| v5 `web/model_web.glb`（简化 50% + meshopt） | ~1.24M | 17.5 MB |
+| v6 `web/model_web.glb`（WebP + Draco） | 495,936 | 5.9 MB |
+| v5 → v6 `web/preview.html` | | 24.2 → 9.0 MB |
+
+完整分辨率的 GLB 中有 10.2 MB 是 PNG 贴图，所以几何数据的压缩效果更明显：未压缩 20.4 MB，Draco 5.5 MB，meshopt 6.2 MB。
+Full-res GLBs carry 10.2 MB of PNG textures, so geometry alone shows the gain more clearly: 20.4 MB raw → 5.5 MB Draco → 6.2 MB meshopt.
+
+
+本地备份 `v1/` 至 `v5/` 未提交到仓库（v3 是放弃的分支）。v5 的几何与 v4 完全相同（build.py 未改，网格缓存复用），只调整了明暗和材质。
 
 ### v5 相对 v4 的改动（提亮）
 - **贴图**：青铜底色约提亮 2.7 倍，偏炭灰紫；棱上的锈橙高光更宽、更亮；缝隙里的紫色更强。

@@ -48,13 +48,15 @@
   <div><span class="k">洞心高度 Centre</span> Z = +<span class="n">58</span> m · <span class="k">凹入深度 Recess</span> <span class="n">18</span> m</div>
   <div><span class="k">主卷须 Tentacles</span> 根部 Ø<span class="n">8–12</span> m → 末端 Ø<span class="n">0.5–1</span> m</div>
   <div><span class="k">原点 Origin</span> 包围盒底面中心 · Z up · 正面 −Y · 1 BU = 1 m</div>
-  <div class="hint">拖动旋转 · 滚轮缩放 · 右键平移 &nbsp;|&nbsp; drag = orbit · wheel = zoom · right-drag = pan &nbsp;·&nbsp; __TRIS__ tris (Blender model; web LOD ≈ 1.43M)</div>
+  <div class="hint">拖动旋转 · 滚轮缩放 · 右键平移 &nbsp;|&nbsp; drag = orbit · wheel = zoom · right-drag = pan &nbsp;·&nbsp; __TRIS__ tris · Draco 压缩 compressed GLB (__GLBMB__ MB)</div>
 </div>
 <script>__THREE_BUNDLE__</script>
+<script id="draco_wrap" type="text/plain">__DRACO_WRAPPER__</script>
+<script id="draco_wasm" type="application/octet-stream">__DRACO_WASM_BASE64__</script>
 <script id="glb" type="application/octet-stream">__GLB_BASE64__</script>
 <script>
 (function(){
-const { THREE, OrbitControls, GLTFLoader, MeshoptDecoder, RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass } = window.BH3;
+const { THREE, OrbitControls, GLTFLoader, DRACOLoader, MeshoptDecoder, RoomEnvironment, EffectComposer, RenderPass, UnrealBloomPass, OutputPass } = window.BH3;
 const META = __META_JSON__;
 const $ = (id) => document.getElementById(id);
 const Q = new URLSearchParams(location.search);
@@ -129,6 +131,13 @@ function b64ToBuffer(b64) {
 }
 const loader = new GLTFLoader();
 loader.setMeshoptDecoder(MeshoptDecoder);
+// Draco decoder (wasm + wrapper) is embedded in this file, so the page works offline / from file:// without a CDN
+const draco = new DRACOLoader();
+const DRACO_LIBS = { 'draco_wasm_wrapper.js': $('draco_wrap').textContent, 'draco_decoder.wasm': b64ToBuffer($('draco_wasm').textContent) };
+$('draco_wrap').remove(); $('draco_wasm').remove();
+draco._loadLibrary = (url) => Promise.resolve(DRACO_LIBS[url]);
+draco.setDecoderConfig({ type: 'wasm' });
+loader.setDRACOLoader(draco);
 try {
   const buf = b64ToBuffer($('glb').textContent); $('glb').remove();
   loader.parse(buf, '', (gltf) => {
@@ -150,6 +159,9 @@ try {
       }
     });
     scene.add(gltf.scene);
+    window.__gltfExt = gltf.parser.json.extensionsUsed || [];
+    let nt = 0; gltf.scene.traverse(o => { if (o.isMesh) nt += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3; });
+    window.__tris = nt; console.log('glTF extensions:', window.__gltfExt.join(','), 'tris:', nt);
     $('loading').classList.add('hide');
     window.__ready = true;
   }, (e) => { $('msg').textContent = '模型加载失败 Failed to load model'; $('err').textContent = String(e && e.message || e); console.error(e); });
