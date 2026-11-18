@@ -67,7 +67,7 @@
  "tris_full": 2483108,
  "decimate": {
   "ratio": 0.08,
-  "bake_src": 0.2,
+  "bake_src": 0.25,
   "drift_before_refit": [
    -0.2723,
    0.2323,
@@ -93,6 +93,6 @@
   48.0,
   120.0
  ],
- "tris": 198647,
- "verts": 109271
+ "tris": 198087,
+ "verts": 108597
 }

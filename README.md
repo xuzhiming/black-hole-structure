@@ -5,7 +5,7 @@
 根据参考效果图，用 Blender（Python 脚本，bpy 5.3 无界面运行）程序化生成的"黑洞构筑体"3D 模型，附带基于 Three.js 的网页查看器。查看器支持环绕、辉光和中英文尺寸标注。
 A procedural "black hole structure" 3D model generated in Blender (headless bpy 5.3 Python scripts) from a reference sheet, with a Three.js web viewer (orbit, bloom, CN/EN dimension overlay).
 
-规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v7 减面后约 19.9 万三角面 ~199k tris（≤20 万；v6 为 497k，v5 为 2.48M），烘焙法线 + Draco · ≤200k tris, baked normals + Draco.
+规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v8 ≈19.8 万三角面（≤20 万），自定义平滑法线（消除折纸）+ 烘焙细节法线 + Draco · smooth custom normals (no origami) + baked detail + Draco.
 
 ![contact sheet](contact_sheet.png)
 
@@ -14,7 +14,7 @@ A procedural "black hole structure" 3D model generated in Blender (headless bpy 
 | 路径 Path | 说明 Description |
 |---|---|
 | `src/` | 建模、贴图、场景/渲染、校验、拼图、网页构建脚本 · build / texture / scene+render / verify / contact-sheet / web scripts |
-| `model.blend` | Blender 源文件（v7 ≤200k + 烘焙法线）· Blender source (v7 ≤200k + baked n) |
+| `model.blend` | Blender 源文件（v8 ≤200k · 平滑法线）· Blender source (v8 ≤200k · smooth n) |
 | `model.glb` | v7 减面 glTF，未压缩（24.2 MB）· v7 decimated glTF, uncompressed |
 | `model_draco.glb` | v7 + Draco（14.6 MB）· v7 + Draco |
 | `tex/baked_detail_n.png` | 从 v6 密度网格烘焙的细节法线 · detail normal baked from mid-poly |
@@ -23,7 +23,7 @@ A procedural "black hole structure" 3D model generated in Blender (headless bpy 
 | `web/preview_screenshot*.png` | 无界面 Chrome 测试截图 · Headless-Chrome test screenshots |
 | `renders/hero.png`, `renders/closeup.png` | Cycles 透视主图 / 细节特写 · Cycles hero / close-up renders |
 | `contact_sheet.png` | 参考图与 v5 / v6 各视图对比 · Reference vs v5 vs v6 per view |
-| `compare_v6_v7.png` | v6→v7 减至≤20万面 + 烘焙法线对比 · v6→v7 ≤200k + baked normals |
+| `compare_v7_v8.png` | v7→v8 消除折纸对比 · v7→v8 anti-origami |
 | `tex/`, `ref/` | 程序化贴图与参考图裁切 · Procedural textures and reference crops |
 | `measure.json`, `verify.json` | 尺寸实测 · Measured dimensions |
 
@@ -49,6 +49,12 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 ---
 
 ## 版本记录 / Version notes
+
+### v8：消除折纸 / anti-origami（issue #2 补充）
+- **根因**：v7 减面后大三角面在金属高光下显出平面（折纸感）；漏斗等处导出法线几乎贴齐面法线；v7 的 Mix 节点还曾让部分材质导出错误的 normalTexture。
+- **修复**：`remove_doubles` 焊接 → `shade_smooth` → 从 ~62 万中模 **Data Transfer 自定义法线**到低模（连续平滑着色）→ 重新烘焙细节法线（清晰 TexImage→NormalMap 路径）→ 网页 `flatShading=false` 且保留自定义法线（不再 `computeVertexNormals`）。
+- **面数**：198,087 tris（仍 ≤200k）。
+
 
 ### v7：≤20 万面 + 烘焙法线 / ≤200k tris + baked normals（issue #2）
 - **减面**：Blender Decimate 比例 0.08，2,483,108 → **198,647** 三角面（Ø40 漏斗与 Ø26 内核顶点组保护）。包围盒仍精确 100×48×120 m；洞心 Z≈58.0、内核 Ø≈26.0、凹入 ≈18.1 m。

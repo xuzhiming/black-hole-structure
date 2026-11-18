@@ -143,20 +143,23 @@ try {
   loader.parse(buf, '', (gltf) => {
     gltf.scene.traverse(o => {
       if (!o.isMesh) return;
+      // v8: keep exported custom/smooth normals (do NOT computeVertexNormals — that would wipe the high-poly transfer)
       // the Ø26 core is a pure void: unlit black so no light/specular/bloom ever reaches it
       if (o.material && o.material.name === 'BH_Core_Black') { o.material = new THREE.MeshBasicMaterial({ color: 0x000000, name: 'BH_Core_Black' }); }
       const mats = Array.isArray(o.material) ? o.material : [o.material];
       for (const m of mats) {
         if (!m) continue;
+        m.flatShading = false;
         if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 2.0); m.toneMapped = true; }
         if (m.name === 'BH_Skin_Vein') m.emissiveIntensity = 1.4;
         if (m.name === 'BH_Pore_Glow') { m.emissiveIntensity = 1.6; }
         if (m.name === 'BH_Rim_Wear') { m.envMapIntensity = 1.6; }
 
-        if (m.name.startsWith('BH_Skin')) { m.envMapIntensity = 1.45; }
-        // v7: amplify baked + procedural normals so ≤200k still reads as detailed
+        if (m.name.startsWith('BH_Skin')) { m.envMapIntensity = 1.45; if ('roughness' in m) m.roughness = Math.min(1, (m.roughness ?? 0.5) + 0.06); }
+        if (m.name === 'BH_Rim_Wear' && 'roughness' in m) m.roughness = Math.min(1, (m.roughness ?? 0.4) + 0.04);
+        // v8: baked detail normals — strong enough to hide remaining large facets
         if (m.normalMap) {
-          const s = (m.name === 'BH_Rim_Wear') ? 1.9 : (m.name.startsWith('BH_Pore') ? 1.7 : 1.75);
+          const s = (m.name === 'BH_Rim_Wear') ? 2.2 : (m.name === 'BH_Glow_Rim' ? 1.4 : (m.name.startsWith('BH_Pore') ? 2.0 : 2.1));
           m.normalScale.set(s, s);
         }
         // Blender drives the skin's crevice emission from a mesh attribute; glTF can only carry the flat colour -> switch it off here

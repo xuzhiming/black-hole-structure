@@ -19,7 +19,7 @@ def mat_skin(name, vein=False):
     t = nt.nodes.new('ShaderNodeTexImage'); t.image = img('skin_albedo')
     r = nt.nodes.new('ShaderNodeTexImage'); r.image = img('skin_rough', True)
     n = nt.nodes.new('ShaderNodeTexImage'); n.image = img('skin_normal', True)
-    nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 2.0
+    nm = nt.nodes.new('ShaderNodeNormalMap'); nm.inputs['Strength'].default_value = 2.2
     ca = nt.nodes.new('ShaderNodeVertexColor'); ca.layer_name = 'Tint'        # copper on ridge edges / purple in crevices
     mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'; mx.blend_type = 'MULTIPLY'; mx.inputs['Factor'].default_value = 1.0
     dz = nt.nodes.new('ShaderNodeMix'); dz.data_type = 'RGBA'; dz.blend_type = 'MIX'          # soften the copper tint (only crests stay warm)
@@ -119,10 +119,10 @@ me.color_attributes.active_color = ca
 cv = me.attributes.new('Cav', 'FLOAT', 'POINT'); cv.data.foreach_set('value', np.clip(VCAV, 0, 1).astype(np.float32) * 0.5)
 me.validate(); me.update()
 ob = bpy.data.objects.new('BlackHole_Structure', me); scene.collection.objects.link(ob)
-# v7: collapse-decimate 2.48M -> ≤200k tris (default 0.08 ≈ 198.6k), protect hole, bake detail normals from a mid-poly source
+# v8: ≤200k + weld/smooth (fix origami) + bake normals from denser mid-poly; protect hole
 DEC = float(os.environ.get('DECIMATE', 0.08)); info['tris_full'] = len(me.polygons)
 BAKE = os.environ.get('BAKE_NORMALS', '1') == '1'
-BAKE_SRC = float(os.environ.get('BAKE_SRC', '0.2'))   # mid-poly bake source (v6 density); 1.0 = full 2.48M
+BAKE_SRC = float(os.environ.get('BAKE_SRC', '0.25'))  # denser mid-poly bake source (~620k); 1.0 = full 2.48M
 BAKE_RES = int(os.environ.get('BAKE_RES', '1024'))
 if DEC < 1.0:
     lo0, hi0 = V.min(0), V.max(0)
@@ -159,6 +159,46 @@ if DEC < 1.0:
     Fd = np.zeros(len(me.polygons) * 3, np.int32); me.polygons.foreach_get('vertices', Fd)
     FMd = np.zeros(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', FMd)
     pickle.dump((co, Fd.reshape(-1, 3), FMd), open(f'/tmp/bh_dec_{_h}_{DEC}.pkl', 'wb'))
+    # --- v8: kill origami --- the protected funnel/core (and some body strips) were built with
+    # nearly-unshared verts, so each triangle carried a face normal (= flat / 折纸 shading).
+    # Merge-by-distance welds them; shade_smooth + clear custom normals give continuous averaged normals.
+    def _weld_smooth(obj, dist=None):
+        dist = float(os.environ.get('WELD', '0.002')) if dist is None else dist
+        bpy.ops.object.select_all(action='DESELECT'); obj.select_set(True); bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.mesh.remove_doubles(threshold=dist)
+        bpy.ops.mesh.normals_make_consistent(inside=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        bpy.ops.object.shade_smooth()
+        # Blender 4.x: no use_auto_smooth; clear any custom split normals left by modifiers
+        try:
+            bpy.ops.mesh.customdata_custom_splitnormals_clear()
+        except Exception:
+            pass
+        for poly in obj.data.polygons:
+            poly.use_smooth = True
+        obj.data.update()
+        return obj.data
+    me = _weld_smooth(ob); print('AFTER_WELD tris', len(me.polygons), 'verts', len(me.vertices), flush=True)
+    if hi_ob is not None:
+        _weld_smooth(hi_ob); print('BAKE_SRC after weld tris', len(hi_ob.data.polygons), flush=True)
+        # Transfer high-poly shading onto low-poly as CUSTOM normals. This is the main anti-origami
+        # fix: large facets keep smooth continuous lighting as if the mid-poly surface were still there.
+        bpy.ops.object.select_all(action='DESELECT'); ob.select_set(True); bpy.context.view_layer.objects.active = ob
+        xfer = ob.modifiers.new('NormXfer', 'DATA_TRANSFER')
+        xfer.object = hi_ob
+        xfer.use_loop_data = True
+        xfer.data_types_loops = {'CUSTOM_NORMAL'}
+        xfer.loop_mapping = 'NEAREST_POLYNOR'
+        xfer.use_max_distance = True
+        xfer.max_distance = float(os.environ.get('XFER_DIST', '1.5'))
+        bpy.ops.object.modifier_apply(modifier='NormXfer')
+        print('CUSTOM_NORMALS', ob.data.has_custom_normals, flush=True)
+    # refresh verify cache after weld (tri count may drop slightly)
+    co = np.zeros(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', co); co = co.reshape(-1, 3).astype(np.float64)
+    Fd = np.zeros(len(me.polygons) * 3, np.int32); me.polygons.foreach_get('vertices', Fd)
+    FMd = np.zeros(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', FMd)
+    pickle.dump((co, Fd.reshape(-1, 3), FMd), open(f'/tmp/bh_dec_{_h}_{DEC}.pkl', 'wb'))
     if BAKE and hi_ob is not None:
         if 'BakeUV' in me.uv_layers: me.uv_layers.remove(me.uv_layers['BakeUV'])
         bake_uv = me.uv_layers.new(name='BakeUV'); me.uv_layers.active = bake_uv
@@ -186,28 +226,49 @@ if DEC < 1.0:
         bpy.ops.object.bake(type='NORMAL'); print('BAKE done', flush=True)
         out_n = os.path.join(TEX, 'baked_detail_n.png'); baked.filepath_raw = out_n; baked.file_format = 'PNG'; baked.save()
         print('BAKE saved', out_n, flush=True)
-        # wire baked normal (BakeUV) as primary; keep a light mix of tiled procedural micro-normal
+        # wire baked normal with a SINGLE clear path TexImage(BakeUV)→NormalMap→BSDF so glTF
+        # exports the right normalTexture (v7 Mix nodes made Vein/etc. pick the wrong image).
+        # Procedural micro-normal feeds a Bump node afterwards for fine grain without breaking export.
         for mat in me.materials:
             if not mat or not mat.use_nodes: continue
-            if not (mat.name.startswith('BH_Skin') or mat.name in ('BH_Rim_Wear', 'BH_Pore_Dark', 'BH_Pore_Glow')): continue
-            nt = mat.node_tree; nm = next((n for n in nt.nodes if n.type == 'NORMAL_MAP'), None)
-            if nm is None: continue
-            uv = nt.nodes.new('ShaderNodeUVMap'); uv.uv_map = 'BakeUV'; uv.location = (-700, -200)
-            bn = nt.nodes.new('ShaderNodeTexImage'); bn.image = baked; bn.location = (-500, -200)
-            bn.image.colorspace_settings.name = 'Non-Color'
-            nt.links.new(uv.outputs['UV'], bn.inputs['Vector'])
-            # mix baked (A) with existing procedural normal colour (B) so micro-grain remains
-            mxn = nt.nodes.new('ShaderNodeMix'); mxn.data_type = 'RGBA'; mxn.blend_type = 'MIX'
-            mxn.inputs['Factor'].default_value = float(os.environ.get('BAKE_MIX', '0.78')); mxn.location = (-280, -100)
-            nt.links.new(bn.outputs['Color'], mxn.inputs['A'])
-            old_col = nm.inputs['Color'].links[0].from_socket if nm.inputs['Color'].links else None
-            if old_col is not None: nt.links.new(old_col, mxn.inputs['B'])
-            else: mxn.inputs['B'].default_value = (0.5, 0.5, 1.0, 1)
-            for l in list(nm.inputs['Color'].links): nt.links.remove(l)
-            nt.links.new(mxn.outputs['Result'], nm.inputs['Color'])
-            nm.inputs['Strength'].default_value = float(os.environ.get('NSTR', '2.6'))
+            if mat.name == 'BH_Core_Black':
+                tgt = mat.node_tree.nodes.get('BAKE_TARGET')
+                if tgt: mat.node_tree.nodes.remove(tgt)
+                continue
+            nt = mat.node_tree
+            bsdf = next((n for n in nt.nodes if n.type == 'BSDF_PRINCIPLED'), None)
+            if bsdf is None: continue
+            # remove prior Normal Map links / bake target
             tgt = nt.nodes.get('BAKE_TARGET')
             if tgt: nt.nodes.remove(tgt)
+            old_nms = [n for n in nt.nodes if n.type == 'NORMAL_MAP']
+            proc_tex = None
+            for n in nt.nodes:
+                if n.type == 'TEX_IMAGE' and n.image and n.image.name.startswith('skin_normal'):
+                    proc_tex = n; break
+            for n in old_nms:
+                nt.nodes.remove(n)
+            uv = nt.nodes.new('ShaderNodeUVMap'); uv.uv_map = 'BakeUV'; uv.location = (-780, -40)
+            bn = nt.nodes.new('ShaderNodeTexImage'); bn.image = baked; bn.label = 'BakedDetailN'; bn.location = (-580, -40)
+            bn.image.colorspace_settings.name = 'Non-Color'
+            nt.links.new(uv.outputs['UV'], bn.inputs['Vector'])
+            nm = nt.nodes.new('ShaderNodeNormalMap'); nm.location = (-320, -40)
+            nm.inputs['Strength'].default_value = float(os.environ.get('NSTR', '2.4'))
+            nt.links.new(bn.outputs['Color'], nm.inputs['Color'])
+            # optional micro bump from tiled procedural normal (does not affect glTF normalTexture detection)
+            if proc_tex is not None and mat.name != 'BH_Glow_Rim':
+                bump = nt.nodes.new('ShaderNodeBump'); bump.location = (-140, -40)
+                bump.inputs['Strength'].default_value = float(os.environ.get('MICRO_BUMP', '0.15'))
+                # use procedural normal's color as height proxy (grayscale of existing map)
+                nt.links.new(proc_tex.outputs['Color'], bump.inputs['Height'])
+                nt.links.new(nm.outputs['Normal'], bump.inputs['Normal'])
+                for l in list(bsdf.inputs['Normal'].links): nt.links.remove(l)
+                nt.links.new(bump.outputs['Normal'], bsdf.inputs['Normal'])
+            else:
+                for l in list(bsdf.inputs['Normal'].links): nt.links.remove(l)
+                nt.links.new(nm.outputs['Normal'], bsdf.inputs['Normal'])
+            if mat.name == 'BH_Glow_Rim':
+                nm.inputs['Strength'].default_value = float(os.environ.get('GLOW_NSTR', '1.2'))
         me.uv_layers.active = me.uv_layers['UVMap']
         bpy.data.objects.remove(hi_ob, do_unlink=True); info['baked_normal'] = out_n
 co = np.zeros(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', co); co = co.reshape(-1, 3)

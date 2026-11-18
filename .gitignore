@@ -5,6 +5,7 @@ v3/
 v4/
 v5/
 v6/
+v7/
 *.blend1
 *.blend@
 # v7: model.glb is ≤200k (~24 MB) + baked normals; DECIMATE=1 full-res export (~112 MB) must not be committed

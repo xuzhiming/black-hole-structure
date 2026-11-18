@@ -14,12 +14,12 @@
   48.0,
   120.0
  ],
- "tris": 198647,
- "verts": 109271,
+ "tris": 198087,
+ "verts": 108597,
  "tris_full": 2483108,
  "decimate_ratio": 0.08,
  "hole_centre_xz_from_core": [
-  0.34,
+  0.33,
   58.04
  ],
  "core_diameter_measured_4dirs": [
@@ -39,16 +39,16 @@
   40.0
  ],
  "funnel_lip_y_at_r20": -9.36,
- "core_plane_y": 6.83,
+ "core_plane_y": 6.82,
  "recess_front_face_to_core_mouth": 18.13,
  "core_mouth_y": -5.87,
- "funnel_depth_lip_to_core_plane": 16.2,
+ "funnel_depth_lip_to_core_plane": 16.19,
  "recess_param": 18.0,
  "mat_face_counts": {
   "skin": 48635,
   "vein": 5375,
   "glow": 71680,
-  "core": 56000,
+  "core": 55440,
   "pore_dark": 11102,
   "pore_glow": 552,
   "rim_wear": 5303
