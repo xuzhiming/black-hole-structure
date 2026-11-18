@@ -1,84 +1,41 @@
 {
- "scale_fit": [
-  1.023151429825853,
-  0.8533555961752836,
-  1.0816302791455068
+ "source": "user_tripo.glb",
+ "src_tris": 92822,
+ "src_verts": 77460,
+ "boundary_edges_after_weld": 109,
+ "filled_faces": 9,
+ "speck_verts_removed": 54,
+ "non_manifold_after_clean": 36,
+ "src_bbox_size_zup": [
+  82.755,
+  51.728,
+  97.789
  ],
- "pre_warp": {
-  "hole_centre": [
-   -0.16323538541130853,
-   0.5631847540715451,
-   58.73540558152698
+ "fit_scale_xyz": [
+  1.2084,
+  0.9279,
+  1.2271
+ ],
+ "src_hole": {
+  "centre_xz": [
+   -2.78,
+   55.13
   ],
-  "ring_d": [
-   40.22790801978135,
-   39.72266835987618
-  ],
-  "recess": 20.004240926851352
+  "floor_y": -7.45,
+  "floor_diam_eq": 20.25,
+  "front_face_y": -23.96,
+  "recess_front_to_floor": 16.5,
+  "y_at_r_floor": -8.71
  },
- "hole_centre": [
-  0.0,
-  -3.9957590731486468,
-  58.0
- ],
- "ring_d_x": 40.0,
- "ring_d_z": 40.0,
- "core_d_x": 26.0,
- "core_d_z": 26.0,
- "recess_from_front_face": 18.0,
- "bbox_after_warp": [
-  [
-   -50.0,
-   -24.0,
-   0.0
-  ],
-  [
-   50.0,
-   24.0,
-   120.0
-  ]
- ],
- "params": {
-  "ring_r": 18.988512863568346,
-  "core_r": 12.342533361319425,
-  "recess": -4.449135822022496,
-  "hx": 1.5698328081932473,
-  "hz": 53.533081813416395,
-  "ax": 1.0353008823809302,
-  "az": 0.9670270650181652
+ "warp": {
+  "R_FLOOR": 8.5,
+  "R_LIP": 18.5,
+  "R_OUT": 34.0,
+  "dish": 5.0
  },
- "stats": {
-  "pores": 3976,
-  "knobs": 0,
-  "pore_faces": 271772,
-  "rim_faces": 150318,
-  "glow_beads": 21,
-  "tubes": 357,
-  "curls": 279,
-  "branches": 113,
-  "mouth_y_raw": -5.342372918925303
- },
- "post_warp_refit": [
-  1.0,
-  1.0,
-  1.0
- ],
- "faces_flipped": 1278676,
- "tris_full": 1761002,
- "decimate": {
-  "ratio": 0.08,
-  "bake_src": 0.3,
-  "drift_before_refit": [
-   -0.0355,
-   0.5371,
-   1.1011,
-   -0.1697,
-   -0.0492,
-   -0.4146
-  ]
- },
- "baked_ao": "/workspace/outputs/black_hole_structure/tex/baked_ao.png",
- "baked_normal": "/workspace/outputs/black_hole_structure/tex/baked_detail_n.png",
+ "uv_faces_fixed": 67,
+ "tris": 195992,
+ "verts": 97960,
  "bbox_min": [
   -50.0,
   -24.0,
@@ -94,6 +51,20 @@
   48.0,
   120.0
  ],
- "tris": 195460,
- "verts": 106399
+ "hole_centre": [
+  -0.0024781227111816406,
+  -3.8242682218551636,
+  58.01531982421875
+ ],
+ "core_d_x": 25.994872093200684,
+ "core_d_z": 25.967239379882812,
+ "core_mouth_y": -6.0146918296813965,
+ "recess_from_front_face": 17.985308170318604,
+ "ring_d_x": 40.0,
+ "ring_d_z": 40.0,
+ "mat_faces": {
+  "skin": 189210,
+  "glow": 5862,
+  "core": 920
+ }
 }

@@ -5,7 +5,7 @@
 根据参考效果图，用 Blender（Python 脚本，bpy 5.3 无界面运行）程序化生成的"黑洞构筑体"3D 模型，附带基于 Three.js 的网页查看器。查看器支持环绕、辉光和中英文尺寸标注。
 A procedural "black hole structure" 3D model generated in Blender (headless bpy 5.3 Python scripts) from a reference sheet, with a Three.js web viewer (orbit, bloom, CN/EN dimension overlay).
 
-规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v9 重做大形（4 条大螺旋臂、粗尾、层叠顶部），195,460 三角面（≤20 万），平滑低模 + 从孔洞高模烘焙法线/AO + Draco · v9 new large forms, 195k tris, smooth low-poly + normals/AO baked from the pore mesh + Draco.
+规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · **v10 按用户提供的 GLB（Tripo）重建大形**，195,986 三角面（≤20 万），GLB 贴图调色 + 自定义法线 + 烘焙浮雕/AO + Draco · v10 rebuilt from the user's Tripo GLB, 196k tris, GLB textures (graded) + custom normals + baked relief/AO + Draco.
 
 ![contact sheet](contact_sheet.png)
 
@@ -13,17 +13,17 @@ A procedural "black hole structure" 3D model generated in Blender (headless bpy 
 
 | 路径 Path | 说明 Description |
 |---|---|
-| `src/` | 建模、贴图、场景/渲染、校验、拼图、网页构建脚本 · build / texture / scene+render / verify / contact-sheet / web scripts |
-| `model.blend` | Blender 源文件（v9 ≤200k）· Blender source (v9 ≤200k) |
-| `model.glb` | v9 减面 glTF，未压缩（19.2 MB）· v9 decimated glTF, uncompressed |
-| `model_draco.glb` | v9 + Draco（9.6 MB）· v9 + Draco |
-| `tex/baked_detail_n.png`, `tex/baked_ao.png` | 从孔洞高模（176 万面）烘焙的细节法线 / AO · detail normal / AO baked from the 1.76M pore mesh |
+| `src/` | 建模、贴图、场景/渲染、校验、拼图、网页构建脚本 · build / texture / scene+render / verify / contact-sheet / web scripts（v10: `prep_tex_v10.py`, `scene_v10.py`, `verify_v10.py`, `rend_common.py`）|
+| `model.blend` | Blender 源文件（v10，9.8 MB）· Blender source (v10) |
+| `model.glb` | v10 glTF，未压缩（22.9 MB）· v10 glTF, uncompressed |
+| `model_draco.glb` | v10 + Draco（16.7 MB）· v10 + Draco |
+| `tex/v10_*.jpg` | v10 贴图：GLB 反照率调色、MR、漏斗自发光、烘焙法线 / AO · v10 maps: graded GLB albedo, MR, funnel emission, baked normal / AO |
 | `web/preview.html` | 网页查看器（已内嵌压缩模型，可离线打开）· Web viewer (compressed model embedded, works offline) |
-| `web/model_web.glb` | 网页用模型（Draco + 1024 WebP，2.4 MB）· Web model (Draco + 1024 WebP) |
+| `web/model_web.glb` | 网页用模型（Draco + 2048 WebP，2.1 MB）· Web model (Draco + 2048 WebP) |
 | `web/preview_screenshot*.png` | 无界面 Chrome 测试截图 · Headless-Chrome test screenshots |
 | `renders/hero.png`, `renders/closeup.png` | Cycles 透视主图 / 细节特写 · Cycles hero / close-up renders |
-| `contact_sheet.png` | 参考图与 v5 / v6 各视图对比 · Reference vs v5 vs v6 per view |
-| `compare_v8_v9.png` | v8→v9 大形重做对比 · v8→v9 large-form rework |
+| `contact_sheet.png` | 原图 vs 用户 GLB vs v10 六视图 · Reference vs user GLB vs v10, six views |
+| `compare_v9_v10.png` | v9→v10 对比 · v9→v10 before / after |
 | `tex/`, `ref/` | 程序化贴图与参考图裁切 · Procedural textures and reference crops |
 | `measure.json`, `verify.json` | 尺寸实测 · Measured dimensions |
 
@@ -33,6 +33,10 @@ Default is `DECIMATE=0.08` (≤200k) + baked normals; `model.glb` (24.2 MB) is c
 ## 重新生成 / Rebuild
 
 ```bash
+# v10 (needs the user's GLB at ref_glb/user_tripo.glb, kept out of git):
+GRADE=0.75 ALB_CON=1.15 python3 src/prep_tex_v10.py && SAMPLES=64 blender -b --python src/scene_v10.py
+python3 src/verify_v10.py && python3 src/sheet.py && bash src/rebuild_web.sh && python3 src/test_preview.py && python3 src/compare_sheet.py
+# v9 and earlier (procedural):
 python3 src/texture.py && SAMPLES=64 python3 src/scene.py   # textures -> mesh -> model.blend / model.glb / renders/
 python3 src/verify.py && python3 src/sheet.py              # verify.json, contact_sheet.png
 bash src/rebuild_web.sh && python3 src/test_preview.py      # model_draco.glb, web/model_web.glb (Draco) -> web/preview.html, headless test
@@ -49,6 +53,21 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 ---
 
 ## 版本记录 / Version notes
+
+### v10：按用户 GLB 重建 / rebuilt from the user's GLB
+- **来源**：用户提供的 Tripo GLB（31.3 MB，不入库）。它是单个网格，92,822 三角面 / 77,460 顶点（焊接后 46,423，8 个连通块），Y 轴向上，正面 +Z，原尺寸 82.8 × 51.7 × 97.8。1 个材质，4096 贴图（basecolor JPG、MR PNG 23.8 MB、法线 PNG 几乎是平的）。有洞口，但只是浅碗：洞心偏在 X −2.8 / Z 55.1，碗底 Ø≈20 m，比正面浅 16.5 m，不是通透的黑核。
+- **拟合**：转成 Z 向上、正面 −Y、原点在底面中心，非等比缩放到 100 × 48 × 120（1.208 / 0.928 / 1.227）。焊接、补 9 个小洞，删去 54 个碎点。碗形径向重映射：洞心移到 X 0 / Z 58，碗底边 → Ø26 黑核口，唇缘 → Ø40；黑核口后推到凹入 18 m，中间再凹 5 m 成黑色碟面。洞口 24 m 外再做一次贴合包围盒的拉伸（洞口内不动）。
+- **≤20 万面**：先 Catmull-Clark 细分 1 级（55.7 万面），按 Ø26 精确分界分出 皮肤 / 漏斗辉光 / 黑核 三个材质，再减面到 195,986（分界顶点锁定）。之后焊接、平滑着色，从 2 级细分稠密网格传递自定义法线。烘焙源用稠密网格加反照率高通浮雕（0.3 m），烘焙 2048 切线法线和 AO。减面时有 67 个面的 UV 跨过接缝铺满整张图，烘焙会盖掉别的岛，已修正。
+- **材质**：沿用 GLB 反照率，调向参考图的暗青铜 / 铜色（保留紫色），MR 更哑光（粗糙度 +0.3，金属度 ×0.75）。漏斗自发光是从反照率生成的紫色纹路，黑核为纯黑无光。网页贴图升到 2048；修正了 v9 网页里轮廓光被注释吞掉、没加进场景的问题。
+- **实测**：bbox 100.0 × 48.0 × 120.0，洞心 X 0.0 / Z 58.0，黑核 Ø26.0 / 26.0 / 25.7 / 25.4（四个方向，斜向因减面成多边形略小），辉光外缘 Ø≈41，凹入 18.0 m。
+
+| 文件 File | v9 | v10 |
+|---|---|---|
+| 三角面 Tris | 195,460 | **195,986** |
+| `model.glb` | 19.2 MB | 22.9 MB |
+| `model_draco.glb` | 9.6 MB | 16.7 MB |
+| `web/model_web.glb` | 2.4 MB（1024） | 2.1 MB（2048 WebP） |
+| `web/preview.html` | 4.3 MB | 3.9 MB |
 
 ### v9：按参考图重做大形 / large-form rework
 - **正面**：原来 11+11 条细前臂和满布的小卷须，改为 4 条连续大螺旋臂。臂从 Ø40 洞缘起，根部约 Ø11 m，旋转约 230° 后离开轮廓，末端是 Ø<1 m 的卷头；另有 4 条细紫脉臂走在臂间沟里。壳体沟纹改为与臂同旋率（8 条宽带 + 20 条细槽）。周边小卷须 72→33（变粗），表面小卷须 160→16（只在背面），唇缘卷须 34→12。

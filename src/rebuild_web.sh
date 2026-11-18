@@ -9,7 +9,7 @@ cd /workspace/outputs/black_hole_structure
 G="npx --yes @gltf-transform/cli"
 $G draco model.glb model_draco.glb >/dev/null 2>&1
 $G meshopt model.glb /tmp/bh_cmp_meshopt_full.glb --level high >/dev/null 2>&1
-$G dedup model.glb /tmp/bh_a.glb >/dev/null 2>&1 && $G resize /tmp/bh_a.glb /tmp/bh_b.glb --width 1024 --height 1024 >/dev/null 2>&1 \
+$G dedup model.glb /tmp/bh_a.glb >/dev/null 2>&1 && $G resize /tmp/bh_a.glb /tmp/bh_b.glb --width ${WEB_TEX:-2048} --height ${WEB_TEX:-2048} >/dev/null 2>&1 \
  && $G webp /tmp/bh_b.glb /tmp/bh_c.glb >/dev/null 2>&1 \
  && $G draco /tmp/bh_c.glb web/model_web.glb >/dev/null 2>&1 \
  && $G meshopt /tmp/bh_c.glb /tmp/bh_cmp_meshopt_web.glb --level high >/dev/null 2>&1
