@@ -15,7 +15,7 @@
   120.0
  ],
  "tris": 195986,
- "verts": 142605,
+ "verts": 142620,
  "hole_centre_xz_from_core": [
   -0.0,
   58.02
@@ -29,7 +29,7 @@
  "glow_outer_diameter_4dirs": [
   41.38,
   41.4,
-  41.07,
+  41.08,
   41.48
  ],
  "ring_d_param": [
@@ -39,7 +39,7 @@
  "core_mouth_y": -5.99,
  "front_face_y": -24.0,
  "recess_front_face_to_core_mouth": 18.01,
- "core_dish_back_y": 0.15,
+ "core_dish_back_y": 0.16,
  "materials": [
   "BH_Skin_Bronze",
   "BH_Glow_Rim",

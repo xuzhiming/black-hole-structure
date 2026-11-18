@@ -64,7 +64,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffe
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = +(Q.get('exp') ?? 1.6);
+renderer.toneMappingExposure = +(Q.get('exp') ?? 1.8);   // v11: tuned so the front view matches the reference sheet's body L*
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -84,7 +84,7 @@ controls.autoRotate = true; controls.autoRotateSpeed = 0.5;
 controls.minDistance = 40; controls.maxDistance = 900;
 
 const key = new THREE.DirectionalLight(0xffe0c0, 4.6); key.position.set(-80, 160, 140); scene.add(key);
-const rim = new THREE.DirectionalLight(0xb08cff, +(Q.get('rim') ?? 1.2));   // v9: smooth surfaces catch the rim broadly -> dimmer
+const rim = new THREE.DirectionalLight(0xb08cff, +(Q.get('rim') ?? 0.7));   // v9: smooth surfaces catch the rim broadly -> dimmer
 rim.position.set(120, 90, -160); scene.add(rim);   // v10: was swallowed by the comment above in v9 (rim light never added)
 const fill = new THREE.HemisphereLight(0x9a80b0, 0x2a1810, 1.3);
 const front = new THREE.DirectionalLight(0xffd8b8, 1.6); front.position.set(30, 70, 200); scene.add(front); scene.add(fill);
@@ -151,12 +151,12 @@ try {
       for (const m of mats) {
         if (!m) continue;
         m.flatShading = false;
-        if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 0.9); m.toneMapped = true; }   // v10: emissiveTexture = violet streaks
+        if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 0.7); m.toneMapped = true; }   // v10: emissiveTexture = violet streaks
         if (m.name === 'BH_Skin_Vein') m.emissiveIntensity = 0.9;
         if (m.name === 'BH_Pore_Glow') { m.emissiveIntensity = 0.8; }   // v9: fewer / softer glints
         if (m.name === 'BH_Rim_Wear') { m.envMapIntensity = 1.6; }
 
-        if (m.name.startsWith('BH_Skin')) { m.envMapIntensity = 1.1; if ('roughness' in m) m.roughness = Math.min(1, (m.roughness ?? 0.5) + 0.06); if ('metalness' in m) m.metalness *= 0.9; }   // v10: MR texture already matte (rough +0.3, metal x0.75)
+        if (m.name.startsWith('BH_Skin')) { m.envMapIntensity = +(Q.get('env') ?? 0.9); if ('metalness' in m) m.metalness *= +(Q.get('metal') ?? 0.75); }   // v11: MR map carries sharp body spec + copper edges; less env so copper stays on the edges
         if (m.name === 'BH_Rim_Wear' && 'roughness' in m) m.roughness = Math.min(1, (m.roughness ?? 0.4) + 0.04);
         // v9: baked AO (from the pore mesh) darkens direct light too, so pore sockets / crevices read on the smooth mesh
         if (m.aoMap) {
@@ -172,7 +172,7 @@ try {
         }
         // v8: baked detail normals — strong enough to hide remaining large facets
         if (m.normalMap) {
-          const s = +(Q.get('nrm') ?? 1.2);   // v10: relief bake is already at full strength
+          const s = +(Q.get('nrm') ?? 1.5);   // v11: scales   // v10: relief bake is already at full strength
           m.normalScale.set(s, s);
         }
         // Blender drives the skin's crevice emission from a mesh attribute; glTF can only carry the flat colour -> switch it off here
