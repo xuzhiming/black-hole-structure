@@ -5,6 +5,7 @@ H = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, H); import re
 C = os.environ.get('V11_CACHE', '/tmp/v11'); ROOT = '/workspace/outputs/black_hole_structure'; TEX = ROOT + '/tex'
 OUT_R = os.environ.get('OUT_R', ROOT + '/renders'); env = lambda k, d: float(os.environ.get(k, d))
 bpy.ops.wm.open_mainfile(filepath=C + '/B.blend'); scene = bpy.context.scene
+_is = scene.render.image_settings; _is.color_management = 'FOLLOW_SCENE'; _is.color_depth = '8'  # stage B may leave a 16-bit Raw override from the col2 bake
 ob = bpy.data.objects['BlackHole_Structure']; me = ob.data
 BOX = np.array([100.0, 48.0, 120.0]); HC = np.array([0.0, 58.0])
 def sstep(a, b, x): t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
@@ -20,7 +21,8 @@ def img(name, nc=False):
     im = bpy.data.images.load(TEX + '/' + name, check_existing=True)
     if nc: im.colorspace_settings.name = 'Non-Color'
     return im
-ALB, MR, NRM, AO, EMI = img('v11_albedo.jpg'), img('v11_mr.jpg', True), img('v11_normal.jpg', True), img('v11_ao.jpg', True), img('v11_glow_emit.jpg')
+TAG = os.environ.get('TAG', 'v11')
+ALB, MR, NRM, AO, EMI = img(TAG + '_albedo.jpg'), img(TAG + '_mr.jpg', True), img(TAG + '_normal.jpg', True), img(TAG + '_ao.jpg', True), img(TAG + '_glow_emit.jpg')
 grp = bpy.data.node_groups.get('glTF Material Output') or bpy.data.node_groups.new('glTF Material Output', 'ShaderNodeTree')
 if not grp.interface.items_tree: grp.interface.new_socket('Occlusion', in_out='INPUT', socket_type='NodeSocketFloat')
 def T(nt, im): t = nt.nodes.new('ShaderNodeTexImage'); t.image = im; return t
@@ -54,7 +56,7 @@ V = getco(ob); lo, hi = V.min(0), V.max(0)
 fmi = np.zeros(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', fmi)
 fv = np.zeros(len(me.polygons) * 3, np.int32); me.polygons.foreach_get('vertices', fv); fv = fv.reshape(-1, 3)
 cv = np.unique(fv[fmi == 2].ravel()); Cc = V[cv]; hc = [0.5 * (Cc[:, 0].min() + Cc[:, 0].max()), float(np.median(Cc[:, 1])), 0.5 * (Cc[:, 2].min() + Cc[:, 2].max())]
-info = json.load(open(C + '/infoA.json')); info.update(version='v11', tris=len(me.polygons), verts=len(me.vertices), bbox_size=(hi - lo).tolist(), bbox_min=lo.tolist(), bbox_max=hi.tolist(),
+info = json.load(open(C + '/infoA.json')); info.update(version=TAG, tris=len(me.polygons), verts=len(me.vertices), bbox_size=(hi - lo).tolist(), bbox_min=lo.tolist(), bbox_max=hi.tolist(),
                                                      hole_centre=[float(x) for x in hc], scales=json.load(open(C + '/field.json')))
 json.dump(info, open(ROOT + '/measure.json', 'w'), indent=1, default=float); print('MEASURE', info['tris'], info['bbox_size'], hc, flush=True)
 if os.environ.get('SAVE', '1') == '1':
@@ -64,6 +66,7 @@ if os.environ.get('SAVE', '1') == '1':
                               export_image_format='AUTO', export_yup=True, export_vertex_color='NONE')
     print('EXPORTED', os.path.getsize(ROOT + '/model.glb'), flush=True)
 bc = rc.setup(scene, hole=(hc[0], hc[1] - 6, hc[2]), hole_w=env('HOLE_W', 300), key=env('KEY', 6.5))
+if 'Rim_Sun' in bpy.data.objects: bpy.data.objects['Rim_Sun'].data.energy = env('RIM', 2.4); bpy.data.objects['Rim_Sun'].data.color = (env('RIM_R', 0.80), env('RIM_G', 0.62), 1.0)
 for l in ('Key_Sun', 'Rim_Sun'):
     if l in bpy.data.objects: bpy.data.objects[l].data.angle = np.radians(env('SUN_ANGLE', 2.0))   # crisper speculars on scale edges
 views = rc.views(scene, hc=(hc[0], lo[1] + 4, hc[2]))

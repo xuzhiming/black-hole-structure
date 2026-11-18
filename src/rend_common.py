@@ -38,6 +38,6 @@ def render(sc,bc,V,outdir,only=None,samples=48,expo=0.95,expo_hero=1.1):
         if only and k not in only: continue
         dark=k in ('hero','closeup')
         bc.inputs[0].default_value=(0.004,0.004,0.007,1) if dark else (*srgb2lin((236,230,219)),1)
-        sc.view_settings.exposure=expo_hero if dark else expo; bc.inputs[1].default_value=1/(2**sc.view_settings.exposure)
+        sc.view_settings.exposure=(expo_hero if dark else expo)+float(os.environ.get('EXPO_'+k.upper(),0)); bc.inputs[1].default_value=1/(2**sc.view_settings.exposure)
         sc.camera=c; sc.render.resolution_x=w; sc.render.resolution_y=h; sc.render.filepath=os.path.join(outdir,k+'.png')
         bpy.ops.render.render(write_still=True); print('RENDERED',k,flush=True)

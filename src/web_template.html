@@ -88,7 +88,7 @@ const rim = new THREE.DirectionalLight(0xb08cff, +(Q.get('rim') ?? 0.7));   // v
 rim.position.set(120, 90, -160); scene.add(rim);   // v10: was swallowed by the comment above in v9 (rim light never added)
 const fill = new THREE.HemisphereLight(0x9a80b0, 0x2a1810, 1.3);
 const front = new THREE.DirectionalLight(0xffd8b8, 1.6); front.position.set(30, 70, 200); scene.add(front); scene.add(fill);
-const holeLight = new THREE.PointLight(0xb040ff, +(Q.get('hl') ?? 2200), 60, 1.8); holeLight.position.copy(HC).add(new THREE.Vector3(0, 0, 4)); scene.add(holeLight);
+const holeLight = new THREE.PointLight(0x9a50e0, +(Q.get('hl') ?? 300), 40, 2.0); holeLight.position.copy(HC).add(new THREE.Vector3(0, 0, 4)); scene.add(holeLight);
 
 const grid = new THREE.GridHelper(240, 24, 0x5b3d78, 0x2a1d38); grid.material.transparent = true; grid.material.opacity = 0.55; scene.add(grid);
 
@@ -151,7 +151,7 @@ try {
       for (const m of mats) {
         if (!m) continue;
         m.flatShading = false;
-        if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 0.7); m.toneMapped = true; }   // v10: emissiveTexture = violet streaks
+        if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 1.8); m.toneMapped = true; }   // v10: emissiveTexture = violet streaks
         if (m.name === 'BH_Skin_Vein') m.emissiveIntensity = 0.9;
         if (m.name === 'BH_Pore_Glow') { m.emissiveIntensity = 0.8; }   // v9: fewer / softer glints
         if (m.name === 'BH_Rim_Wear') { m.envMapIntensity = 1.6; }

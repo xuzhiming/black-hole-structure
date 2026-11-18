@@ -25,11 +25,11 @@ rb = sc.render.bake; rb.normal_space = 'TANGENT'; rb.use_selected_to_active = Tr
 rb.cage_extrusion = float(os.environ.get('BAKE_CAGE', 0.9)); rb.max_ray_distance = float(os.environ.get('BAKE_RAY', 2.2)); rb.margin = 16; rb.use_clear = True
 if sc.world is None: sc.world = bpy.data.worlds.new('W')
 sc.world.light_settings.distance = float(os.environ.get('AO_DIST', 2.5))
-def bake(kind, name, res, samples, attr=None):
+def bake(kind, name, res, samples, attr=None, hi=False):
     path = f'{C}/bake_{name}.png'
     if os.path.exists(path): print('cached', path, flush=True); return path
     if attr: at.attribute_name = attr
-    im = bpy.data.images.new('bk_' + name, res, res, alpha=False, float_buffer=False); im.colorspace_settings.name = 'Non-Color'
+    im = bpy.data.images.new('bk_' + name, res, res, alpha=False, float_buffer=hi); im.colorspace_settings.name = 'Non-Color'
     for mm in low.data.materials:
         t = mm.node_tree.nodes.get('BAKE_TARGET') or mm.node_tree.nodes.new('ShaderNodeTexImage'); t.name = 'BAKE_TARGET'; t.image = im
         for q in mm.node_tree.nodes: q.select = False
@@ -37,10 +37,18 @@ def bake(kind, name, res, samples, attr=None):
     sc.cycles.samples = samples
     bpy.ops.object.select_all(action='DESELECT'); dense.select_set(True); low.select_set(True); bpy.context.view_layer.objects.active = low
     print('BAKE', name, res, flush=True); bpy.ops.object.bake(type=kind)
-    im.filepath_raw = path + '.tmp.png'; im.file_format = 'PNG'; im.save(); os.replace(path + '.tmp.png', path); print('SAVED', path, flush=True); return path
+    if hi:   # 16-bit PNG (polar coords need > 8 bit)
+        st_ = sc.render.image_settings; st_.file_format = 'PNG'; st_.color_depth = '16'; st_.color_mode = 'RGB'
+        try: st_.color_management = 'OVERRIDE'; st_.view_settings.view_transform = 'Raw'
+        except Exception: sc.view_settings.view_transform = 'Raw'
+        im.save_render(path + '.tmp.png', scene=sc)
+        st_.color_management = 'FOLLOW_SCENE'; st_.color_depth = '8'
+    else:
+        im.filepath_raw = path + '.tmp.png'; im.file_format = 'PNG'; im.save()
+    os.replace(path + '.tmp.png', path); print('SAVED', path, flush=True); return path
 bake('NORMAL', 'normal', RES, 4)
 bake('EMIT', 'col1', RES, 1, 'col1')
-bake('EMIT', 'col2', 2048, 1, 'col2')
+bake('EMIT', 'col2', int(os.environ.get('COL2_RES', 2048)), 1, 'col2', hi=os.environ.get('COL2_HI', '0') == '1')
 bake('AO', 'ao', int(os.environ.get('AO_RES', 2048)), int(os.environ.get('AO_SAMPLES', 16)))
 for mm in low.data.materials:
     t = mm.node_tree.nodes.get('BAKE_TARGET')
