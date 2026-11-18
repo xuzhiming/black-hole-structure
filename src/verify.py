@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__)); import build
 h = hashlib.md5(open(os.path.join(os.path.dirname(__file__), 'build.py'), 'rb').read()).hexdigest()
 cache = f'/tmp/bh_mesh_{h}.pkl'
 V, F, FM, UV, info = pickle.load(open(cache, 'rb')) if os.path.exists(cache) else build.compute()
-DEC = float(os.environ.get('DECIMATE', 0.2)); tris_full = len(F)
+DEC = float(os.environ.get('DECIMATE', 0.08)); tris_full = len(F)
 if DEC < 1.0: V, F, FM = pickle.load(open(f'/tmp/bh_dec_{h}_{DEC}.pkl', 'rb'))   # v6: measure the decimated mesh written by scene.py
 lo, hi = V.min(0), V.max(0)
 cv = np.unique(F[FM == build.MAT_CORE].ravel()); gv = np.unique(F[FM == build.MAT_GLOW].ravel())

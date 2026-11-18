@@ -4,9 +4,10 @@ v2/
 v3/
 v4/
 v5/
+v6/
 *.blend1
 *.blend@
-# v6: model.glb is decimated (~31 MB) and committed; the DECIMATE=1 full-res export (~112 MB) should not be committed
+# v7: model.glb is ≤200k (~24 MB) + baked normals; DECIMATE=1 full-res export (~112 MB) must not be committed
 model_full.glb
 # intermediate renders (only hero + close-up are kept)
 renders/*

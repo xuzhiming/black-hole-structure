@@ -66,16 +66,18 @@
  "faces_flipped": 1971713,
  "tris_full": 2483108,
  "decimate": {
-  "ratio": 0.2,
+  "ratio": 0.08,
+  "bake_src": 0.2,
   "drift_before_refit": [
-   0.0077,
-   0.0355,
-   -0.0204,
-   0.0443,
-   0.0198,
-   0.0159
+   -0.2723,
+   0.2323,
+   0.1951,
+   -0.3771,
+   -0.294,
+   -0.2971
   ]
  },
+ "baked_normal": "/workspace/outputs/black_hole_structure/tex/baked_detail_n.png",
  "bbox_min": [
   -50.0,
   -24.0,
@@ -91,6 +93,6 @@
   48.0,
   120.0
  ],
- "tris": 496621,
- "verts": 270352
+ "tris": 198647,
+ "verts": 109271
 }

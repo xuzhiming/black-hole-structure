@@ -119,22 +119,97 @@ me.color_attributes.active_color = ca
 cv = me.attributes.new('Cav', 'FLOAT', 'POINT'); cv.data.foreach_set('value', np.clip(VCAV, 0, 1).astype(np.float32) * 0.5)
 me.validate(); me.update()
 ob = bpy.data.objects.new('BlackHole_Structure', me); scene.collection.objects.link(ob)
-# v6: collapse-decimate 2.48M -> ~0.5M tris (DECIMATE=1 keeps full res), then re-fit the bbox exactly to 100 x 48 x 120
-DEC = float(os.environ.get('DECIMATE', 0.2)); info['tris_full'] = len(me.polygons)
+# v7: collapse-decimate 2.48M -> ≤200k tris (default 0.08 ≈ 198.6k), protect hole, bake detail normals from a mid-poly source
+DEC = float(os.environ.get('DECIMATE', 0.08)); info['tris_full'] = len(me.polygons)
+BAKE = os.environ.get('BAKE_NORMALS', '1') == '1'
+BAKE_SRC = float(os.environ.get('BAKE_SRC', '0.2'))   # mid-poly bake source (v6 density); 1.0 = full 2.48M
+BAKE_RES = int(os.environ.get('BAKE_RES', '1024'))
 if DEC < 1.0:
     lo0, hi0 = V.min(0), V.max(0)
-    keep = np.unique(F[(FM == build.MAT_GLOW) | (FM == build.MAT_CORE)].ravel())     # protect the Ø40 funnel + Ø26 core (hole geometry stays exact)
-    vg = ob.vertex_groups.new(name='BH_KeepHole'); vg.add(keep.tolist(), 1.0, 'REPLACE')
-    md = ob.modifiers.new('Decimate', 'DECIMATE'); md.decimate_type = 'COLLAPSE'; md.ratio = DEC; md.use_collapse_triangulate = True
-    md.vertex_group = vg.name; md.invert_vertex_group = True; md.vertex_group_factor = 10.0
-    bpy.context.view_layer.objects.active = ob; bpy.ops.object.modifier_apply(modifier='Decimate'); me = ob.data
+    keep = np.unique(F[(FM == build.MAT_GLOW) | (FM == build.MAT_CORE)].ravel())
+    def _decimate(target, ratio, tag):
+        vg_name = 'BH_KeepHole_' + tag
+        vg = target.vertex_groups.new(name=vg_name)
+        vg.add(keep.tolist(), 1.0, 'REPLACE')
+        md = target.modifiers.new('Decimate_' + tag, 'DECIMATE')
+        md.decimate_type = 'COLLAPSE'; md.ratio = ratio; md.use_collapse_triangulate = True
+        md.vertex_group = vg_name; md.invert_vertex_group = True; md.vertex_group_factor = 10.0
+        bpy.context.view_layer.objects.active = target; bpy.ops.object.modifier_apply(modifier=md.name)
+        # modifier_apply invalidates the vg RNA pointer — remove by name if it still exists
+        g = target.vertex_groups.get(vg_name)
+        if g is not None:
+            target.vertex_groups.remove(g)
+        return target.data
+    # mid-poly bake source (keeps pore/ridge detail that ≤200k can no longer carry as geometry)
+    hi_ob = None
+    if BAKE and BAKE_SRC < 1.0:
+        hi_me = me.copy(); hi_ob = bpy.data.objects.new('BH_BakeSrc', hi_me); scene.collection.objects.link(hi_ob)
+        _decimate(hi_ob, BAKE_SRC, 'src'); print('BAKE_SRC tris', len(hi_ob.data.polygons), flush=True)
+    elif BAKE:
+        hi_ob = bpy.data.objects.new('BH_BakeSrc', me.copy()); scene.collection.objects.link(hi_ob)
+    _decimate(ob, DEC, 'low'); me = ob.data
     co = np.zeros(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', co); co = co.reshape(-1, 3).astype(np.float64)
     lo1, hi1 = co.min(0), co.max(0); co = lo0 + (co - lo1) * (hi0 - lo0) / (hi1 - lo1)
-    me.vertices.foreach_set('co', co.astype(np.float32).ravel()); me.update(); ob.vertex_groups.remove(ob.vertex_groups['BH_KeepHole'])
-    info['decimate'] = dict(ratio=DEC, drift_before_refit=np.r_[lo1 - lo0, hi1 - hi0].round(4).tolist())
+    me.vertices.foreach_set('co', co.astype(np.float32).ravel()); me.update()
+    if hi_ob is not None:  # same world-space fit so cage rays line up
+        hc = np.zeros(len(hi_ob.data.vertices) * 3, np.float32); hi_ob.data.vertices.foreach_get('co', hc); hc = hc.reshape(-1, 3).astype(np.float64)
+        hlo, hhi = hc.min(0), hc.max(0); hc = lo0 + (hc - hlo) * (hi0 - lo0) / (hhi - hlo)
+        hi_ob.data.vertices.foreach_set('co', hc.astype(np.float32).ravel()); hi_ob.data.update()
+    info['decimate'] = dict(ratio=DEC, bake_src=BAKE_SRC if BAKE else None, drift_before_refit=np.r_[lo1 - lo0, hi1 - hi0].round(4).tolist())
     Fd = np.zeros(len(me.polygons) * 3, np.int32); me.polygons.foreach_get('vertices', Fd)
     FMd = np.zeros(len(me.polygons), np.int32); me.polygons.foreach_get('material_index', FMd)
     pickle.dump((co, Fd.reshape(-1, 3), FMd), open(f'/tmp/bh_dec_{_h}_{DEC}.pkl', 'wb'))
+    if BAKE and hi_ob is not None:
+        if 'BakeUV' in me.uv_layers: me.uv_layers.remove(me.uv_layers['BakeUV'])
+        bake_uv = me.uv_layers.new(name='BakeUV'); me.uv_layers.active = bake_uv
+        bpy.ops.object.select_all(action='DESELECT'); ob.select_set(True); bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.mode_set(mode='EDIT'); bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.smart_project(angle_limit=1.15192, island_margin=0.002, correct_aspect=True, scale_to_bounds=False)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        baked = bpy.data.images.new('BH_BakedDetailN', BAKE_RES, BAKE_RES, alpha=False); baked.colorspace_settings.name = 'Non-Color'
+        for mat in me.materials:
+            if not mat or not mat.use_nodes: continue
+            nt = mat.node_tree; node = nt.nodes.new('ShaderNodeTexImage'); node.image = baked; node.name = 'BAKE_TARGET'
+            for n in nt.nodes: n.select = False
+            node.select = True; nt.nodes.active = node
+        scene.render.engine = 'CYCLES'; scene.cycles.device = 'CPU'; scene.cycles.samples = int(os.environ.get('BAKE_SAMPLES', '8'))
+        scene.cycles.bake_type = 'NORMAL'
+        scene.render.bake.normal_space = 'TANGENT'
+        scene.render.bake.use_selected_to_active = True
+        scene.render.bake.use_cage = False
+        scene.render.bake.cage_extrusion = float(os.environ.get('BAKE_CAGE', '0.8'))
+        scene.render.bake.max_ray_distance = float(os.environ.get('BAKE_RAY', '2.0'))
+        scene.render.bake.margin = 8; scene.render.bake.use_clear = True
+        bpy.ops.object.select_all(action='DESELECT'); hi_ob.select_set(True); ob.select_set(True)
+        bpy.context.view_layer.objects.active = ob
+        print('BAKE start', BAKE_RES, 'from', len(hi_ob.data.polygons), 'to', len(me.polygons), flush=True)
+        bpy.ops.object.bake(type='NORMAL'); print('BAKE done', flush=True)
+        out_n = os.path.join(TEX, 'baked_detail_n.png'); baked.filepath_raw = out_n; baked.file_format = 'PNG'; baked.save()
+        print('BAKE saved', out_n, flush=True)
+        # wire baked normal (BakeUV) as primary; keep a light mix of tiled procedural micro-normal
+        for mat in me.materials:
+            if not mat or not mat.use_nodes: continue
+            if not (mat.name.startswith('BH_Skin') or mat.name in ('BH_Rim_Wear', 'BH_Pore_Dark', 'BH_Pore_Glow')): continue
+            nt = mat.node_tree; nm = next((n for n in nt.nodes if n.type == 'NORMAL_MAP'), None)
+            if nm is None: continue
+            uv = nt.nodes.new('ShaderNodeUVMap'); uv.uv_map = 'BakeUV'; uv.location = (-700, -200)
+            bn = nt.nodes.new('ShaderNodeTexImage'); bn.image = baked; bn.location = (-500, -200)
+            bn.image.colorspace_settings.name = 'Non-Color'
+            nt.links.new(uv.outputs['UV'], bn.inputs['Vector'])
+            # mix baked (A) with existing procedural normal colour (B) so micro-grain remains
+            mxn = nt.nodes.new('ShaderNodeMix'); mxn.data_type = 'RGBA'; mxn.blend_type = 'MIX'
+            mxn.inputs['Factor'].default_value = float(os.environ.get('BAKE_MIX', '0.78')); mxn.location = (-280, -100)
+            nt.links.new(bn.outputs['Color'], mxn.inputs['A'])
+            old_col = nm.inputs['Color'].links[0].from_socket if nm.inputs['Color'].links else None
+            if old_col is not None: nt.links.new(old_col, mxn.inputs['B'])
+            else: mxn.inputs['B'].default_value = (0.5, 0.5, 1.0, 1)
+            for l in list(nm.inputs['Color'].links): nt.links.remove(l)
+            nt.links.new(mxn.outputs['Result'], nm.inputs['Color'])
+            nm.inputs['Strength'].default_value = float(os.environ.get('NSTR', '2.6'))
+            tgt = nt.nodes.get('BAKE_TARGET')
+            if tgt: nt.nodes.remove(tgt)
+        me.uv_layers.active = me.uv_layers['UVMap']
+        bpy.data.objects.remove(hi_ob, do_unlink=True); info['baked_normal'] = out_n
 co = np.zeros(len(me.vertices) * 3, np.float32); me.vertices.foreach_get('co', co); co = co.reshape(-1, 3)
 lo, hi = co.min(0), co.max(0)
 info.update(bbox_min=lo.tolist(), bbox_max=hi.tolist(), bbox_size=(hi - lo).tolist(), tris=len(me.polygons), verts=len(me.vertices))

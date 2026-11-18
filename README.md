@@ -5,7 +5,7 @@
 根据参考效果图，用 Blender（Python 脚本，bpy 5.3 无界面运行）程序化生成的"黑洞构筑体"3D 模型，附带基于 Three.js 的网页查看器。查看器支持环绕、辉光和中英文尺寸标注。
 A procedural "black hole structure" 3D model generated in Blender (headless bpy 5.3 Python scripts) from a reference sheet, with a Three.js web viewer (orbit, bloom, CN/EN dimension overlay).
 
-规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v6 减面后约 49.7 万三角面 ~497k tris（v5 为 2.48M），网页模型使用 Draco 压缩 · web model is Draco-compressed.
+规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v7 减面后约 19.9 万三角面 ~199k tris（≤20 万；v6 为 497k，v5 为 2.48M），烘焙法线 + Draco · ≤200k tris, baked normals + Draco.
 
 ![contact sheet](contact_sheet.png)
 
@@ -14,20 +14,21 @@ A procedural "black hole structure" 3D model generated in Blender (headless bpy 
 | 路径 Path | 说明 Description |
 |---|---|
 | `src/` | 建模、贴图、场景/渲染、校验、拼图、网页构建脚本 · build / texture / scene+render / verify / contact-sheet / web scripts |
-| `model.blend` | Blender 源文件（v6 减面后）· Blender source file (v6, decimated) |
-| `model.glb` | 减面后 glTF，未压缩（30.6 MB）· decimated glTF, uncompressed |
-| `model_draco.glb` | 减面 + Draco 压缩，完整分辨率 PNG 贴图（15.7 MB）· decimated + Draco, full-res textures |
+| `model.blend` | Blender 源文件（v7 ≤200k + 烘焙法线）· Blender source (v7 ≤200k + baked n) |
+| `model.glb` | v7 减面 glTF，未压缩（24.2 MB）· v7 decimated glTF, uncompressed |
+| `model_draco.glb` | v7 + Draco（14.6 MB）· v7 + Draco |
+| `tex/baked_detail_n.png` | 从 v6 密度网格烘焙的细节法线 · detail normal baked from mid-poly |
 | `web/preview.html` | 网页查看器（已内嵌压缩模型，可离线打开）· Web viewer (compressed model embedded, works offline) |
-| `web/model_web.glb` | 网页用模型（Draco + 1024 WebP 贴图，5.9 MB）· Web model (Draco + 1024 WebP) |
+| `web/model_web.glb` | 网页用模型（Draco + 1024 WebP，2.8 MB）· Web model (Draco + 1024 WebP) |
 | `web/preview_screenshot*.png` | 无界面 Chrome 测试截图 · Headless-Chrome test screenshots |
 | `renders/hero.png`, `renders/closeup.png` | Cycles 透视主图 / 细节特写 · Cycles hero / close-up renders |
 | `contact_sheet.png` | 参考图与 v5 / v6 各视图对比 · Reference vs v5 vs v6 per view |
-| `compare_v5_v6.png` | 减面 + Draco 前后对比（渲染与网页截图）· before/after decimation + Draco |
+| `compare_v6_v7.png` | v6→v7 减至≤20万面 + 烘焙法线对比 · v6→v7 ≤200k + baked normals |
 | `tex/`, `ref/` | 程序化贴图与参考图裁切 · Procedural textures and reference crops |
 | `measure.json`, `verify.json` | 尺寸实测 · Measured dimensions |
 
-v6 起 `model.glb` 已减面到 30.6 MB，可以直接提交。设 `DECIMATE=1` 运行 `src/scene.py` 可重新生成 248 万面的完整版 `model_full.glb`（约 112 MB，不提交）。
-Since v6 `model.glb` is decimated (30.6 MB) and committed; run `src/scene.py` with `DECIMATE=1` to rebuild the 2.48M-tri full version as `model_full.glb` (~112 MB, ignored).
+v7 起默认 `DECIMATE=0.08`（≤20 万面）并烘焙法线；`model.glb`（24.2 MB）已提交。设 `DECIMATE=1` 可生成完整版 `model_full.glb`（约 112 MB，忽略不提交）。
+Default is `DECIMATE=0.08` (≤200k) + baked normals; `model.glb` (24.2 MB) is committed. `DECIMATE=1` writes ignored `model_full.glb` (~112 MB).
 
 ## 重新生成 / Rebuild
 
@@ -48,6 +49,21 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 ---
 
 ## 版本记录 / Version notes
+
+### v7：≤20 万面 + 烘焙法线 / ≤200k tris + baked normals（issue #2）
+- **减面**：Blender Decimate 比例 0.08，2,483,108 → **198,647** 三角面（Ø40 漏斗与 Ø26 内核顶点组保护）。包围盒仍精确 100×48×120 m；洞心 Z≈58.0、内核 Ø≈26.0、凹入 ≈18.1 m。
+- **烘焙法线**：以 v6 密度（ratio 0.2，~497k）为源，Smart UV `BakeUV` + Cycles 切线空间法线烘焙到 1024² `tex/baked_detail_n.png`，与程序化微法线按 0.78 混合，法线强度 2.6；网页端 `normalScale≈1.75`。
+- **Draco**：网页仍内嵌解码器；`preview.html` 9.0 → **4.9 MB**。
+
+| 文件 File | 三角面 Tris | 大小 Size |
+|---|---|---|
+| v6 `model.glb` | 496,621 | 30.6 MB |
+| v7 `model.glb` | 198,647 | 24.2 MB |
+| v7 `model_draco.glb` | 198,647 | 14.6 MB |
+| v6 `web/model_web.glb` | ~496k | 5.9 MB |
+| v7 `web/model_web.glb` | ~198k | 2.8 MB |
+| v6 → v7 `web/preview.html` | | 9.0 → 4.9 MB |
+
 
 ### v6：减面 + Draco 压缩 / decimation + Draco
 - **减面 Decimation**：Blender Decimate（Collapse，比例 0.2），2,483,108 → 496,621 三角面。Ø40 漏斗与 Ø26 内核用顶点组保护、不减面，减面后再把包围盒精确拉回 100 × 48 × 120 m。实测洞心 Z 58.0、内核 Ø25.94、凹入 18.14 m，与 v5 一致。
