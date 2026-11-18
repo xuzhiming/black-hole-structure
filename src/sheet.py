@@ -14,7 +14,7 @@ W = 2 * (3 * c + 4 * pad)                      # two blocks of 3 columns side by
 rows = 3
 grid = Image.new('RGB', (W, hdr + rows * (c + 34)), (236, 230, 219)); d = ImageDraw.Draw(grid)
 _T = '{:,}'.format(json.load(open(R + 'verify.json'))['tris'])
-d.text((20, 10), '黑洞构筑体 · 参考 vs v7 (折纸) vs v8 (__T__ 面 · 平滑法线) · Blender Cycles'.replace('__T__', _T), fill=(60, 40, 40), font=F(30))
+d.text((20, 10), '黑洞构筑体 · 参考 vs v8 vs v9 (__T__ 面 · 重做大形) · Blender Cycles'.replace('__T__', _T), fill=(60, 40, 40), font=F(30))
 def fit(im, s):
     im = im.convert('RGB'); k = min(s / im.width, s / im.height)
     im = im.resize((max(1, int(im.width * k)), max(1, int(im.height * k))), Image.LANCZOS)
@@ -22,7 +22,7 @@ def fit(im, s):
 for i, (n, lab) in enumerate(names):
     blk, row = i % 2, i // 2
     x0 = blk * (3 * c + 4 * pad) + pad; y = hdr + row * (c + 34)
-    for j, (src, tl) in enumerate([(R + f'ref/{n}.png', '参考 REF'), (R + f'v7/renders/{n}.png', 'v7 折纸'), (R + f'renders/{n}.png', 'v8 平滑')]):
+    for j, (src, tl) in enumerate([(R + f'ref/{n}.png', '参考 REF'), (R + f'v8/renders/{n}.png', 'v8'), (R + f'renders/{n}.png', 'v9 大形')]):
         x = x0 + j * (c + pad)
         grid.paste(fit(Image.open(src), c), (x, y + 26)); d.rectangle([x, y + 26, x + c - 1, y + 26 + c - 1], outline=(200, 190, 175))
         d.text((x + 4, y + 2), f'{lab} · {lab_}' if (lab_ := lab) and False else f'{lab}  ·  {tl}', fill=(60, 40, 40) if j < 2 else (110, 30, 130), font=F(20))
@@ -34,10 +34,10 @@ k = W / (hero.width + cl.width + 10)
 hero = hero.resize((int(hero.width * k), int(hh * k))); cl = cl.resize((W - hero.width - 10, int(hh * k)))
 strip = Image.new('RGB', (W, hero.height + 90), (18, 14, 22)); ds = ImageDraw.Draw(strip)
 strip.paste(hero, (0, 0)); strip.paste(cl, (hero.width + 10, 0))
-ds.text((14, 10), 'v8 HERO 透视', fill=(230, 210, 255), font=F(28)); ds.text((hero.width + 24, 10), 'v8 CLOSE-UP 细节 (pores / copper rims / funnel ridges)', fill=(230, 210, 255), font=F(28))
+ds.text((14, 10), 'v9 HERO 透视', fill=(230, 210, 255), font=F(28)); ds.text((hero.width + 24, 10), 'v9 CLOSE-UP 细节 (pores / copper rims / funnel ridges)', fill=(230, 210, 255), font=F(28))
 try:
     M = json.load(open(R + 'verify.json')); s = M['bbox_size']
-    ds.text((14, hero.height + 22), f"v8 bbox {s[0]:.1f} × {s[1]:.1f} × {s[2]:.1f} m · tris {M['tris']:,} · core Ø{sum(M['core_diameter_measured_4dirs'])/4:.1f} m · ring Ø{M['ring_d_param'][0]:.0f} m · hole centre Z {M['hole_centre_xz_from_core'][1]:.1f} m · recess {M['recess_front_face_to_core_mouth']:.1f} m",
+    ds.text((14, hero.height + 22), f"v9 bbox {s[0]:.1f} × {s[1]:.1f} × {s[2]:.1f} m · tris {M['tris']:,} · core Ø{sum(M['core_diameter_measured_4dirs'])/4:.1f} m · ring Ø{M['ring_d_param'][0]:.0f} m · hole centre Z {M['hole_centre_xz_from_core'][1]:.1f} m · recess {M['recess_front_face_to_core_mouth']:.1f} m",
             fill=(220, 210, 235), font=F(24))
 except Exception as e: print('no verify', e)
 out = Image.new('RGB', (W, grid.height + strip.height)); out.paste(grid, (0, 0)); out.paste(strip, (0, grid.height))

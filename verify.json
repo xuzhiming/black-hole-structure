@@ -14,54 +14,54 @@
   48.0,
   120.0
  ],
- "tris": 198087,
- "verts": 108597,
- "tris_full": 2483108,
+ "tris": 195460,
+ "verts": 106399,
+ "tris_full": 1762346,
  "decimate_ratio": 0.08,
  "hole_centre_xz_from_core": [
-  0.33,
-  58.04
+  -0.0,
+  58.0
  ],
  "core_diameter_measured_4dirs": [
-  25.97,
-  26.02,
-  26.05,
-  26.02
+  25.98,
+  25.98,
+  25.98,
+  25.98
  ],
  "glow_inner_diameter_4dirs": [
-  25.97,
-  26.01,
-  26.05,
-  26.01
+  25.98,
+  25.98,
+  25.98,
+  25.98
  ],
  "ring_d_param": [
   40.0,
   40.0
  ],
- "funnel_lip_y_at_r20": -9.36,
- "core_plane_y": 6.82,
- "recess_front_face_to_core_mouth": 18.13,
- "core_mouth_y": -5.87,
- "funnel_depth_lip_to_core_plane": 16.19,
+ "funnel_lip_y_at_r20": -8.55,
+ "core_plane_y": 4.97,
+ "recess_front_face_to_core_mouth": 17.59,
+ "core_mouth_y": -6.41,
+ "funnel_depth_lip_to_core_plane": 13.52,
  "recess_param": 18.0,
  "mat_face_counts": {
-  "skin": 48635,
-  "vein": 5375,
-  "glow": 71680,
-  "core": 55440,
-  "pore_dark": 11102,
-  "pore_glow": 552,
-  "rim_wear": 5303
+  "skin": 130687,
+  "vein": 12615,
+  "glow": 27586,
+  "core": 24572,
+  "pore_dark": 0,
+  "pore_glow": 0,
+  "rim_wear": 0
  },
- "pore_stats": 12145,
+ "pore_stats": 3976,
  "fit_scale": [
-  1.0227389079742075,
-  0.9217380877843667,
-  1.018460489193308
+  1.023151429825853,
+  0.8533555961752836,
+  1.0816302791455068
  ],
  "post_warp_refit": [
-  1.0000000000000002,
   1.0,
-  1.0000000000000002
+  1.0,
+  1.0
  ]
 }

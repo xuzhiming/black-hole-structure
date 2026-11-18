@@ -8,7 +8,7 @@ DEC = float(os.environ.get('DECIMATE', 0.08)); tris_full = len(F)
 if DEC < 1.0: V, F, FM = pickle.load(open(f'/tmp/bh_dec_{h}_{DEC}.pkl', 'rb'))   # v6: measure the decimated mesh written by scene.py
 lo, hi = V.min(0), V.max(0)
 cv = np.unique(F[FM == build.MAT_CORE].ravel()); gv = np.unique(F[FM == build.MAT_GLOW].ravel())
-C = V[cv]; hc = np.array([C[:, 0].mean(), 0, C[:, 2].mean()])
+C = V[cv]; hc = np.array([0.5 * (C[:, 0].min() + C[:, 0].max()), 0, 0.5 * (C[:, 2].min() + C[:, 2].max())])   # v9: bbox centre (vertex mean is biased after uneven decimation)
 def dia(P, fn, n=8):
     r = np.hypot(P[:, 0] - hc[0], P[:, 2] - hc[2]); a = np.arctan2(P[:, 2] - hc[2], P[:, 0] - hc[0]); out = []
     for k in range(n // 2):

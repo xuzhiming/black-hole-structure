@@ -1,3 +1,5 @@
+# 黑洞构筑体 / Black Hole Structure — v9: 4 big spiral arms + thick tail + layered crown (on top of the v2 procedural build)
+# (v2 header follows)
 # 黑洞构筑体 / Black Hole Structure — v2 procedural build (bpy 5.3 headless; structure follows scifi_building/src/build.py)
 #   v2: dense layered fiddlehead curls with recursive branches, layered back/top tentacle mass, real geometric pores
 #   (KD-tree crater displacement with depth + lips + knobs, pore faces get dark / glowing materials), ridged funnel rim.
@@ -108,9 +110,9 @@ def build_body(g, P):
     r_safe = np.maximum(rho, 1.0)
     T = np.tile(th[:, None], (1, NT))
     front = yv < 0
-    phi_f = T + 4.2 * np.log(r_safe / 21.0)                       # same twist rate as the front arms -> grooves reinforce the vortex
+    phi_f = T + 6.5 * np.log(r_safe / 21.0)                       # v9: same twist rate as the 4 big arms -> grooves reinforce the vortex
     phi_b = T - 1.10 * np.log(r_safe / 4.0)
-    ridge_f = (0.5 + 0.5 * np.cos(22 * phi_f))**1.6
+    ridge_f = 0.55 * (0.5 + 0.5 * np.cos(8 * phi_f))**1.4 + 0.45 * (0.5 + 0.5 * np.cos(20 * phi_f))**1.6   # v9: broad swirl bands + fine grooves
     ridge_b = (0.5 + 0.5 * np.cos(9 * phi_b))**1.6
     flat = pts.reshape(-1, 3)
     nz = vnoise3(flat, 0.08, 3, 3).reshape(NTH, NT)
@@ -311,7 +313,8 @@ def apply_pores(V, F, FM, VN, VR, VS, PF, VEIN, hole_c, prng):
     P = V[idx]
     C, Rr, Dk, Cv, Cn = [], [], [], [], []
     #            voxel  rmin  rmax  depth/r  kind
-    for vox, rmin, rmax, dk in [(4.2, 1.2, 2.3, 0.75), (2.1, 0.62, 1.15, 0.8), (1.25, 0.42, 0.66, 0.85), (5.5, 0.5, 1.0, -0.5)]:
+    # v9: only large + a sparse medium tier, shallower -> pores survive ≤200k as soft dimples (fine grain comes from the bake), no knob tier
+    for vox, rmin, rmax, dk in [(4.6, 1.3, 2.4, 0.5), (3.4, 0.8, 1.3, 0.5)]:
         key = np.floor((P + prng.random(3) * vox) / vox).astype(np.int64)
         h = (key[:, 0] * 73856093) ^ (key[:, 1] * 19349663) ^ (key[:, 2] * 83492791)
         perm = prng.permutation(len(P)); _, first = np.unique(h[perm], return_index=True); sel = idx[perm[first]]
@@ -324,7 +327,7 @@ def apply_pores(V, F, FM, VN, VR, VS, PF, VEIN, hole_c, prng):
     C = np.concatenate(C); Rr = np.concatenate(Rr); Dk = np.concatenate(Dk); Cv = np.concatenate(Cv); Cn = np.concatenate(Cn)
     dhc = np.linalg.norm(C - hole_c, axis=1)
     pnear = np.clip(1 - (dhc - 21) / 15, 0, 1) * (C[:, 1] < hole_c[1] + 6)
-    pit_glow = (Dk > 0) & (Rr > 0.5) & (prng.random(len(C)) < 0.16 * pnear + 0.015 * Cv)
+    pit_glow = (Dk > 0) & (Rr > 0.5) & (prng.random(len(C)) < float(os.environ.get('GLOW_PIT', 0.035)) * pnear + 0.008 * Cv)   # v9: far fewer purple polka dots
     tree = cKDTree(C)
     d, j = tree.query(P, k=6, distance_upper_bound=Rr.max() * 1.45)
     valid = np.isfinite(d); j = np.where(valid, j, 0)
@@ -374,64 +377,73 @@ def build_all(P, pores=True):
     hc = np.array([P['hx'], 0, P['hz']])
     # 1) front vortex: pitted main arms flowing out of the funnel lip along a long spiral sweep, curling off the silhouette;
     #    thin purple-veined arms run in the grooves between them (stronger spiral read than v2, pores kept on the main arms)
-    n_front = 11
-    for k in range(2 * n_front):
+    # v9: 4 big continuous spiral arms (root Ø~11 m on the lip, sweeping ~200° outward, leaving the silhouette as
+    #     tapering fiddlehead tips Ø<1 m) + 4 thin purple-veined arms in the grooves between them
+    N_ARM = 4
+    for k in range(2 * N_ARM):
         main = k % 2 == 0
-        th0 = 2*np.pi * (k // 2 + (0 if main else 0.5)) / n_front + rng.uniform(-0.05, 0.05)
-        sweep = rng.uniform(2.3, 2.9) if main else rng.uniform(2.1, 2.6)
-        npt = 160; s = np.linspace(0, 1, npt)
-        r0 = rng.uniform(4.4, 5.6) if main else rng.uniform(1.4, 2.0)
-        rows = row_for(B, -1, (0.0 if main else 0.06) + (0.97 if main else 0.9) * s)
+        th0 = 2*np.pi * (k // 2 + (0 if main else 0.5)) / N_ARM + 0.35 + rng.uniform(-0.04, 0.04)
+        sweep = rng.uniform(3.9, 4.3) if main else rng.uniform(3.4, 3.8)
+        npt = 260; s = np.linspace(0, 1, npt)
+        r0 = rng.uniform(5.2, 6.0) if main else rng.uniform(1.6, 2.1)
+        rows = row_for(B, -1, (0.0 if main else 0.05) + (0.98 if main else 0.9) * s)
         pts = []; nrs = []
         for i in range(npt):
-            p, n = surf_point(B, th0 - sweep * s[i]**0.75, rows[i]); pts.append(p); nrs.append(n)
+            p, n = surf_point(B, th0 - sweep * s[i]**0.8, rows[i]); pts.append(p); nrs.append(n)
         pts = np.array(pts); nrs = np.array(nrs)
-        rad = r0 * (0.32 + 0.68 * np.clip(s / 0.3, 0, 1)**0.75) * (1 - 0.35 * s**1.2)
-        band = np.exp(-(np.maximum(np.abs(pts[:, 2] - P['hz']) - 10, 0) / 12)**2)      # stay low in the scoop band (side crescent)
-        path = pts + nrs * (rad * (0.15 + (0.8 if main else 0.3) * np.clip(s / 0.35, 0, 1) * (1 - 0.7 * band)))[:, None]
+        rad = r0 * (0.42 + 0.58 * np.clip(s / 0.4, 0, 1)**0.7) * (1 - 0.3 * s**1.5)
+        band = np.exp(-(np.maximum(np.abs(pts[:, 2] - P['hz']) - 10, 0) / 12)**2)
+        path = pts + nrs * (rad * (0.35 + (0.85 if main else 0.3) * np.clip(s / 0.3, 0, 1) * (1 - 0.45 * band)))[:, None]
         mat = MAT_SKIN if main else MAT_VEIN
-        tube(g, path, rad, mat, seed=k, pit=main, rope=0.12 if main else 0.07)
+        tube(g, path, rad, mat, seed=k, pit=main, rope=0.10 if main else 0.06, knob=0.06, max_sides=44)
         d_end = unit(path[-1] - path[-6]); outv = path[-1] - hc; outv[1] *= 0.3; outv = unit(outv)
         upf = max(0, (path[-1][2] - hc[2]) / 40.0); ang_e = math.atan2(path[-1][2] - hc[2], path[-1][0] - hc[0])
-        if (not main) and path[-1][2] < hc[2] - 24 and -2.6 < ang_e < -0.6: continue
-        Lc = (rng.uniform(22, 34) if main else rng.uniform(8, 13)) * (1 + 0.45 * upf) * (0.72 + 0.38 * abs(math.sin(ang_e)))
-        fiddle(g, path[-1] - d_end * rad[-1] * 0.5, unit(d_end * 0.5 + outv * 0.8), outv * 0.3 + np.cross(d_end, [0, 1, 0]), Lc, rad[-1], mat, depth=2 if main else 1)
+        Lc = (rng.uniform(34, 44) if main else rng.uniform(10, 15)) * (1 + 0.3 * upf)
+        fiddle(g, path[-1] - d_end * rad[-1] * 0.5, unit(d_end * 0.7 + outv * 0.6), outv * 0.3 + np.cross(d_end, [0, 1, 0]), Lc, rad[-1], mat,
+               depth=1, turns=2.5 if main else None, r_tip=0.45 if main else None)
+        if main:                                                    # a few scale-like curls riding on each big arm
+            Ta, Na, Ba = frames(path)
+            for q_ in range(3):
+                i = int((0.3 + 0.22 * q_ + rng.uniform(-0.05, 0.05)) * (npt - 1))
+                outn = unit(nrs[i] * 0.8 + unit(path[i] - hc) * 0.4)
+                fiddle(g, path[i] + outn * rad[i] * 0.55, unit(outn + Ta[i] * 0.5), unit(Ta[i] + rng.normal(0, 0.2, 3)),
+                       rng.uniform(7, 11), rad[i] * 0.32, MAT_SKIN, depth=0)
     # 2) back swirl arms (lumpier, thicker)
-    n_back = 18
+    n_back = 6                                                  # v9: 6 thick continuous back spiral arms (rear view swirl)
     for k in range(n_back):
         th0 = 2*np.pi * k / n_back + rng.uniform(-0.1, 0.1)
-        sweep = rng.uniform(2.0, 3.0); npt = 110; s = np.linspace(0, 1, npt)
-        r0 = rng.uniform(2.8, 4.4)
+        sweep = rng.uniform(3.3, 3.8); npt = 200; s = np.linspace(0, 1, npt)
+        r0 = rng.uniform(4.6, 6.0)
         rows = row_for(B, +1, 0.92 - 0.9 * s)
         pts = []; nrs = []
         for i in range(npt):
             p, n = surf_point(B, th0 + sweep * s[i]**0.8, rows[i]); pts.append(p); nrs.append(n)
         pts = np.array(pts); nrs = np.array(nrs)
-        rad = r0 * (0.6 + 0.4 * s) * (1 + 0.18 * np.sin(s * 17 + k))
-        path = pts + nrs * (rad * 0.45)[:, None]
+        rad = r0 * (0.45 + 0.55 * s**0.6) * (1 + 0.08 * np.sin(s * 13 + k))
+        path = pts + nrs * (rad * 0.7)[:, None]
         tube(g, path, rad, MAT_SKIN, seed=50 + k)
         d_end = unit(path[-1] - path[-6]); outv = path[-1] - hc; outv[1] *= 0.3; outv = unit(outv)
         upf = max(0, (path[-1][2] - hc[2]) / 40.0); ang_e = math.atan2(path[-1][2] - hc[2], path[-1][0] - hc[0])
         Lc = rng.uniform(16, 26) * (1 + 0.4 * upf) * (0.72 + 0.38 * abs(math.sin(ang_e)))
         fiddle(g, path[-1] - d_end * rad[-1] * 0.5, unit(d_end * 0.5 + outv * 0.8), outv * 0.3 + np.cross(d_end, [0, -1, 0]), Lc, rad[-1], MAT_SKIN, depth=1)
     # 3) layered tentacle mass on the back / top: tentacles walking over the shell in stacked layers, curling up at the end
-    for k in range(110):
-        top_front = k >= 90
-        th0 = rng.uniform(0, 2*np.pi) if not top_front else rng.uniform(math.radians(40), math.radians(140))
+    for k in range(56):                                          # v9: fewer, taller stacked layers
+        top_front = k >= 44
+        th0 = rng.uniform(math.radians(10), math.radians(170)) if not top_front else rng.uniform(math.radians(40), math.radians(140))   # v9: crown only (rear spiral stays readable)
         if top_front:
             f0 = rng.uniform(0.55, 0.95); side = -1
         else:
             f0 = rng.uniform(0.05, 0.95); side = 1
         dth = rng.choice([-1, 1]) * rng.uniform(0.25, 0.8); dfr = rng.uniform(-0.35, 0.25)
         layer = rng.integers(0, 3); npt = 70; s = np.linspace(0, 1, npt)
-        r0 = rng.uniform(1.3, 3.2) * (1.0 - 0.15 * layer)
+        r0 = rng.uniform(2.0, 3.8) * (1.0 - 0.15 * layer)
         pts = []; nrs = []
         for i in range(npt):
             fr = np.clip(f0 + dfr * s[i], 0.02, 0.98)
             p, n = surf_point(B, th0 + dth * s[i], row_for(B, side, fr)); pts.append(p); nrs.append(n)
         pts = np.array(pts); nrs = np.array(nrs)
         rad = r0 * (0.55 + 0.45 * np.sin(np.pi * np.clip(s * 1.3, 0, 1))) * (1 - 0.3 * s)
-        hgt = rad * 0.5 + layer * 1.6 + 2.5 * s**2
+        hgt = rad * 0.5 + layer * 2.6 + 3.5 * s**2
         path = pts + nrs * hgt[:, None]
         if not inside_env(path): continue
         tube(g, path, rad, MAT_SKIN, seed=100 + k)
@@ -439,20 +451,21 @@ def build_all(P, pores=True):
         fiddle(g, path[-1] - d_end * rad[-1] * 0.4, unit(d_end + nrs[-1] * 0.6), unit(nrs[-1] + rng.normal(0, 0.3, 3)), rng.uniform(5, 13), rad[-1] * 1.05, MAT_SKIN,
                depth=1 if rng.random() < 0.5 else 0)
     # 4) the big tail (+ branches) and secondary strand
-    ctrl = np.array([(27, -7, 38), (23, -13, 23), (10, -17, 9), (-8, -16, 4.5), (-26, -13, 6.5), (-38, -10, 13)])
+    ctrl = np.array([(28, -6, 40), (24, -12, 25), (11, -15, 12.5), (-8, -14, 9.5), (-27, -11, 12), (-39, -8, 20)])   # v9: raised for the thicker tail
     ss = np.r_[0, np.cumsum(np.linalg.norm(np.diff(ctrl, axis=0), axis=1))]
     cs = CubicSpline(ss, ctrl, bc_type='natural'); su = np.linspace(0, ss[-1], 160); tail = cs(su)
     d_end = unit(cs(ss[-1], 1))
-    trad = taper(len(tail), 7.2, 4.0, 1.0) * (1 + 0.1 * np.sin(np.linspace(0, 40, len(tail))))
-    tube(g, tail, trad, MAT_SKIN, seed=99, knob=0.08, rope=0.08)
-    fiddle(g, tail[-1] - d_end * 2, d_end, np.array([0.6, 0, 0.8]) - d_end * 0.2 + np.array([0.5, 0, 0]), 44, 4.0, MAT_SKIN, depth=2, turns=2.4, r_tip=0.45)
+    st_ = np.linspace(0, 1, len(tail))
+    trad = (10.5 - 4.5 * st_**0.9) * (0.82 + 0.18 * np.clip(st_ / 0.15, 0, 1)) * (1 + 0.07 * np.sin(np.linspace(0, 26, len(tail))))   # v9: Ø~21 → Ø12, organic swell
+    tube(g, tail, trad, MAT_SKIN, seed=99, knob=0.06, rope=0.07, max_sides=56)
+    fiddle(g, tail[-1] - d_end * 2, d_end, np.array([0.6, 0, 0.8]) - d_end * 0.2 + np.array([0.5, 0, 0]), 50, trad[-1], MAT_SKIN, depth=1, turns=2.3, r_tip=0.6)
     Tt, Nt_, Bt = frames(tail)
     for k in range(4):                                            # a few curls riding on the tail
         i = int(rng.uniform(0.15, 0.95) * (len(tail) - 1)); up = unit(np.array([0, -0.4, 1.0]) + rng.normal(0, 0.35, 3))
         fiddle(g, tail[i] + up * trad[i] * 0.5, unit(up + Tt[i] * rng.uniform(-0.5, 0.5)), unit(Tt[i] * rng.choice([-1, 1]) + rng.normal(0, 0.2, 3)),
                rng.uniform(7, 12), trad[i] * rng.uniform(0.25, 0.35), MAT_VEIN if k % 2 else MAT_SKIN, depth=1)
     # 5) dense periphery: dozens of fiddleheads of varied size all round the silhouette, in front / mid / back layers
-    NPER = 72
+    NPER = 33                                                   # v9: fewer, thicker silhouette curls
     for k in range(NPER):
         th0 = 2*np.pi * k / NPER + rng.uniform(-0.04, 0.04)
         lay = k % 3                                                 # 0 front, 1 silhouette, 2 back
@@ -465,13 +478,13 @@ def build_all(P, pores=True):
         big = (k % 3 == 1)
         upf = max(0.0, math.sin(th0))
         L = (rng.uniform(32, 46) if big else rng.uniform(11, 22)) * (1 + 0.25 * upf)
-        r0 = np.clip(L * 0.07, 1.0, 3.2)
+        r0 = np.clip(L * 0.09, 1.6, 4.4)
         ydir = {0: -0.35, 1: 0.0, 2: 0.35}[lay]
         d0 = unit(outv * 0.5 + tang * 0.85 + np.array([0, ydir, 0]))           # stem runs along the rim, scroll rolls outward
-        fiddle(g, p - outv * r0 * 0.6, d0, unit(outv + np.array([0, -ydir * 0.3, 0])), L, r0, stem=(rng.uniform(4, 10) if big else 0.0), mat=MAT_VEIN if k % 7 == 0 else MAT_SKIN, depth=2 if big else 1)
+        fiddle(g, p - outv * r0 * 0.6, d0, unit(outv + np.array([0, -ydir * 0.3, 0])), L, r0, stem=(rng.uniform(4, 10) if big else 0.0), mat=MAT_VEIN if k % 7 == 0 else MAT_SKIN, depth=1 if big else 0)
     # 6) forward-leaning horn curls at the top and bottom front (they make the crescent: scoop between them)
-    for k in range(16):
-        top = k < 9
+    for k in range(8):
+        top = k < 5
         th0 = rng.uniform(math.radians(55), math.radians(125)) if top else rng.uniform(math.radians(235), math.radians(305))
         p, n = surf_point(B, th0, row_for(B, -1, rng.uniform(0.55, 0.9)))
         outv = unit(np.array([p[0] - hc[0], 0, p[2] - hc[2]]))
@@ -486,19 +499,40 @@ def build_all(P, pores=True):
         sd = unit(np.array([-math.cos(th0) - (0.6 if k % 2 else -0.6), 0, -0.2]))
         fiddle(g, p - d0 * 2, d0, sd, rng.uniform(40, 52), rng.uniform(2.0, 2.8), MAT_SKIN, depth=1, turns=rng.uniform(2.2, 2.8), stem=rng.uniform(12, 20))
     # 7) organic ridged rim: small tentacles rooted on the lip, curling into the funnel
-    for k in range(34):
-        th0 = 2*np.pi * k / 34 + rng.uniform(-0.05, 0.05)
+    for k in range(12):
+        th0 = 2*np.pi * k / 12 + rng.uniform(-0.05, 0.05)
         p, n = surf_point(B, th0, B['last_glow'] + rng.uniform(1.0, 4.0))
         inw = unit(np.array([hc[0] - p[0], 0, hc[2] - p[2]]))
         fiddle(g, p - n * 0.3, unit(n * 0.8 + inw * 0.6), unit(inw - n * 0.3), rng.uniform(4, 8), rng.uniform(0.8, 1.5), MAT_VEIN, depth=0, turns=rng.uniform(1.6, 2.3))
     # 8) small surface fiddleheads sprouting everywhere on the shell
-    for k in range(160):
-        side = -1 if k < 45 else 1
+    for k in range(16):                                          # v9: few, back only (no uniform small curls on the front)
+        side = 1
         th0 = rng.uniform(0, 2*np.pi); fr = rng.uniform(0.12, 0.9)
         p, n = surf_point(B, th0, row_for(B, side, fr))
         if side < 0 and abs(p[2] - hc[2]) < 18 and np.hypot(p[0] - hc[0], p[2] - hc[2]) < 34: continue   # keep the scoop clean-ish
         tang = unit(np.cross(n, rng.normal(0, 1, 3)))
         fiddle(g, p - n * 0.5, unit(n * 0.8 + tang * 0.6), unit(-n * 0.4 + tang), rng.uniform(3.5, 8), rng.uniform(0.6, 1.4), MAT_SKIN, depth=0)
+    # v9: crown ridges — thick rolls following the top silhouette in front / mid / back layers with an undulating lift,
+    #     so the TOP view reads as stacked layers instead of a flat slab
+    for k in range(7):
+        lay = k % 3
+        side = -1 if lay == 0 else 1
+        fr = {0: 0.78, 1: 0.02, 2: 0.35}[lay] + rng.uniform(-0.05, 0.05)
+        tha, thb = math.radians(rng.uniform(15, 50)), math.radians(rng.uniform(130, 165))
+        if k % 2: tha, thb = thb, tha
+        npt = 180; s = np.linspace(0, 1, npt)
+        pts = []; nrs = []
+        for i in range(npt):
+            p, n = surf_point(B, tha + (thb - tha) * s[i], row_for(B, side, np.clip(fr + 0.12 * math.sin(3 * math.pi * s[i] + k), 0.0, 0.97)))
+            pts.append(p); nrs.append(n)
+        pts = np.array(pts); nrs = np.array(nrs)
+        rad = rng.uniform(3.0, 4.4) * (0.55 + 0.45 * np.sin(np.pi * s)**0.6) * (1 + 0.12 * np.sin(9 * s + k))
+        lift = rad * 0.55 + (1.2 + 1.4 * lay) * (0.6 + 0.4 * np.sin(2 * np.pi * s * 1.5 + k))
+        path = pts + nrs * lift[:, None]
+        if not inside_env(path, 1.0): continue
+        tube(g, path, rad, MAT_SKIN, seed=300 + k, rope=0.08, knob=0.05)
+        d_end = unit(path[-1] - path[-5])
+        fiddle(g, path[-1] - d_end * rad[-1] * 0.4, unit(d_end + nrs[-1] * 0.5), unit(nrs[-1] + rng.normal(0, 0.3, 3)), rng.uniform(10, 16), rad[-1], MAT_SKIN, depth=0)
     V, F, FM, UV, VN, VR, VS, PF, VEIN = g.arrays()
     global LAST_VN
     LAST_VN = VN.copy()
@@ -596,6 +630,17 @@ def compute(iters=3):
         bad = ((fn * ref).sum(1) < 0) & (np.linalg.norm(ref, axis=1) > 0.5)
         F = F.copy(); F[bad] = F[bad][:, [0, 2, 1]]; info['faces_flipped'] = int(bad.sum())
     col, cav = cavity_tint(Vout, F, FM); info['_vcol'] = col; info['_vcav'] = cav
+    if os.environ.get('SMOOTH_LOW', '1') == '1':
+        # v9: identical build WITHOUT pores (same rng / params / fit / warp) -> the ≤200k display mesh is decimated from this
+        # smooth surface (no crater lips -> no shard facets); the pore mesh above becomes the normal/AO bake source.
+        (Vs, Fs, FMs, UVs), _ = build_all(P, pores=False)
+        Vs = hole_warp((Vs - off) * s, hole, ring_now, mouth, P)
+        Vs = (Vs - off2) * s2
+        if len(LAST_VN) == len(Vs):
+            fn = np.cross(Vs[Fs[:, 1]] - Vs[Fs[:, 0]], Vs[Fs[:, 2]] - Vs[Fs[:, 0]]); ref = LAST_VN[Fs].sum(1)
+            bad = ((fn * ref).sum(1) < 0) & (np.linalg.norm(ref, axis=1) > 0.5); Fs = Fs.copy(); Fs[bad] = Fs[bad][:, [0, 2, 1]]
+        cs_, cv_ = cavity_tint(Vs, Fs, FMs)
+        info['_smooth'] = (Vs, Fs, FMs, UVs, cs_, cv_)
     return Vout, F, FM, UV, info
 
 if __name__ == '__main__':

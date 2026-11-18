@@ -5,7 +5,7 @@
 根据参考效果图，用 Blender（Python 脚本，bpy 5.3 无界面运行）程序化生成的"黑洞构筑体"3D 模型，附带基于 Three.js 的网页查看器。查看器支持环绕、辉光和中英文尺寸标注。
 A procedural "black hole structure" 3D model generated in Blender (headless bpy 5.3 Python scripts) from a reference sheet, with a Three.js web viewer (orbit, bloom, CN/EN dimension overlay).
 
-规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v8 ≈19.8 万三角面（≤20 万），自定义平滑法线（消除折纸）+ 烘焙细节法线 + Draco · smooth custom normals (no origami) + baked detail + Draco.
+规格 / Spec: 包围盒 bbox 100 × 48 × 120 m（原点在底面中心，Z 轴向上，正面朝 −Y）· 洞口 opening Ø40 m 外环 / Ø26 m 内核，洞心 Z = 58 m，凹入 18 m · v9 重做大形（4 条大螺旋臂、粗尾、层叠顶部），195,460 三角面（≤20 万），平滑低模 + 从孔洞高模烘焙法线/AO + Draco · v9 new large forms, 195k tris, smooth low-poly + normals/AO baked from the pore mesh + Draco.
 
 ![contact sheet](contact_sheet.png)
 
@@ -14,16 +14,16 @@ A procedural "black hole structure" 3D model generated in Blender (headless bpy 
 | 路径 Path | 说明 Description |
 |---|---|
 | `src/` | 建模、贴图、场景/渲染、校验、拼图、网页构建脚本 · build / texture / scene+render / verify / contact-sheet / web scripts |
-| `model.blend` | Blender 源文件（v8 ≤200k · 平滑法线）· Blender source (v8 ≤200k · smooth n) |
-| `model.glb` | v7 减面 glTF，未压缩（24.2 MB）· v7 decimated glTF, uncompressed |
-| `model_draco.glb` | v7 + Draco（14.6 MB）· v7 + Draco |
-| `tex/baked_detail_n.png` | 从 v6 密度网格烘焙的细节法线 · detail normal baked from mid-poly |
+| `model.blend` | Blender 源文件（v9 ≤200k）· Blender source (v9 ≤200k) |
+| `model.glb` | v9 减面 glTF，未压缩（19.2 MB）· v9 decimated glTF, uncompressed |
+| `model_draco.glb` | v9 + Draco（9.6 MB）· v9 + Draco |
+| `tex/baked_detail_n.png`, `tex/baked_ao.png` | 从孔洞高模（176 万面）烘焙的细节法线 / AO · detail normal / AO baked from the 1.76M pore mesh |
 | `web/preview.html` | 网页查看器（已内嵌压缩模型，可离线打开）· Web viewer (compressed model embedded, works offline) |
-| `web/model_web.glb` | 网页用模型（Draco + 1024 WebP，2.8 MB）· Web model (Draco + 1024 WebP) |
+| `web/model_web.glb` | 网页用模型（Draco + 1024 WebP，2.4 MB）· Web model (Draco + 1024 WebP) |
 | `web/preview_screenshot*.png` | 无界面 Chrome 测试截图 · Headless-Chrome test screenshots |
 | `renders/hero.png`, `renders/closeup.png` | Cycles 透视主图 / 细节特写 · Cycles hero / close-up renders |
 | `contact_sheet.png` | 参考图与 v5 / v6 各视图对比 · Reference vs v5 vs v6 per view |
-| `compare_v7_v8.png` | v7→v8 消除折纸对比 · v7→v8 anti-origami |
+| `compare_v8_v9.png` | v8→v9 大形重做对比 · v8→v9 large-form rework |
 | `tex/`, `ref/` | 程序化贴图与参考图裁切 · Procedural textures and reference crops |
 | `measure.json`, `verify.json` | 尺寸实测 · Measured dimensions |
 
@@ -49,6 +49,23 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 ---
 
 ## 版本记录 / Version notes
+
+### v9：按参考图重做大形 / large-form rework
+- **正面**：原来 11+11 条细前臂和满布的小卷须，改为 4 条连续大螺旋臂。臂从 Ø40 洞缘起，根部约 Ø11 m，旋转约 230° 后离开轮廓，末端是 Ø<1 m 的卷头；另有 4 条细紫脉臂走在臂间沟里。壳体沟纹改为与臂同旋率（8 条宽带 + 20 条细槽）。周边小卷须 72→33（变粗），表面小卷须 160→16（只在背面），唇缘卷须 34→12。
+- **尾巴**：根部 Ø≈21 m，有机膨缩，逐渐收到 Ø≈12 m，再接一个大卷头（L 50 m，末端 Ø1.2 m）。整体抬高，避免压缩包围盒。
+- **顶部**：新增 7 条冠部层叠卷脊，分前 / 中 / 后三层，起伏抬升；层叠触须集中到冠部，堆叠更高，俯视不再是一块平板。
+- **背面**：18 条细臂改为 6 条粗的连续螺旋臂，背视能看出旋涡。
+- **表面 / 低模**：显示网格改从**无孔洞的平滑版本**减面（同一随机种子、拟合和孔洞校正），带孔洞的 176 万面网格只作烘焙源，烘焙细节法线和 AO。v8 特写里的碎片高光是孔洞唇边被减面后形成的，现在消失了。漏斗 / 内核单独温和减面（Ø26 口沿锁定），把预算让给大形。包围盒拉伸在洞口 24 m 内淡出，洞心 Z 58.0、内核 Ø25.98 保持不变。紫色亮点 0.16→0.035，网页高光更哑光（粗糙度 +0.24，轮廓光 2.4→1.5）。
+- **修正**：v8 网页的皮肤法线导出成了平铺的程序化 skin_normal（Bump 节点导致），不是烘焙图。v9 去掉 Bump，`normalTexture` / `occlusionTexture` 现在都指向烘焙图（TEXCOORD_1）。
+
+| 文件 File | v8 | v9 |
+|---|---|---|
+| 三角面 Tris | 198,087 | **195,460** |
+| `model.glb` | 24.0 MB | 19.2 MB |
+| `model_draco.glb` | 14.4 MB | 9.6 MB |
+| `web/model_web.glb` | 2.8 MB | 2.4 MB |
+| `web/preview.html` | 4.9 MB | 4.3 MB |
+
 
 ### v8：消除折纸 / anti-origami（issue #2 补充）
 - **根因**：v7 减面后大三角面在金属高光下显出平面（折纸感）；漏斗等处导出法线几乎贴齐面法线；v7 的 Mix 节点还曾让部分材质导出错误的 normalTexture。
