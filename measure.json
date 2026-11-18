@@ -34,7 +34,7 @@
   "dish": 5.0
  },
  "uv_faces_fixed": 67,
- "version": "v12",
+ "version": "v13",
  "tris": 195992,
  "verts": 97960,
  "bbox_size": [
@@ -73,6 +73,6 @@
   "rim_mean": 0.06012530684755617,
   "cav_mean": 0.2580740438090149,
   "coverage": 0.8233843777385002,
-  "secs": 18
+  "secs": 42
  }
 }

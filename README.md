@@ -62,6 +62,21 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 
 ## 版本记录 / Version notes
 
+### v13：保留漏斗波纹 / funnel ripples restored
+- **为什么 v12 没有波纹**：v11 的波纹来自稠密网格上的漏斗位移（`0.2 × (ripple − 0.15)`，烘焙进法线贴图），以及同一个 ripple 信号驱动的反照率和发光。v12 为了画更细的条纹，把这部分位移和逐顶点 ripple 一起换成了逐纹素细条纹，所以波纹消失了。
+- **v13 = v12 + v11 波纹**：新的 `src/ripple_v13.py` 重新实现 v11 的波纹公式（环距 0.95 m，角向噪声让环呈波浪状，再断成碎段），被两处共用：`src/scales_v13.py` 把它作为漏斗真实起伏烘焙进 4096 法线；`src/compose_v13.py` 用同一公式逐纹素生成发光和反照率，几何和颜色对得上。v11 用 2.2 圈扭转（非整数，θ = ±π 处有接缝）；v13 改为整数 `SWIRL=3`，形成连续、无接缝的三臂内旋螺旋。v12 的暗色漏斗、细螺旋条纹和 Ø26 口的洋红内环都保留（条纹增益 1.1→0.45，波纹发光 1.3，漏斗高光 GSPEC 0.1）。鳞片和身体与 v12 完全相同（scale field / col1 / col2 逐字节一致，只重烘了法线和 AO）。
+- **紫色和指标**：网页正视紫色占比 6.8%（原图 6.1%；v11 11.7%，v12 5.3%），网页 ΔE 2.6；网页辉光默认值 1.8→1.0。Cycles 正视紫色 6.7%。平均 ΔE 3.4（v12 3.4，v11 3.8）；L* 直方图交叠 0.860；色相直方图交叠 0.619。
+- 对比图：`contact_sheet.png`（原图 / v11 / v12 / v13 六视图 + 漏斗近景）、`funnel_closeup_compare.png`（正视漏斗裁图 / Cycles 近景 / 网页近景）。
+- 重新生成：`set -a; . src/v13_params.env; set +a`，然后 `python3 src/scales_v13.py` → `blender -b --python src/v11_stageB.py`（col1 / col2 可复用 v12 的烘焙）→ `python3 src/compose_v13.py` → `blender -b --python src/v11_stageD.py` → `bash src/rebuild_web.sh` → `python3 src/sheet_v13.py`。
+
+| 文件 File | v12 | v13 |
+|---|---|---|
+| 三角面 Tris | 195,986 | 195,986 |
+| `model.glb` | 24.5 MB | 24.6 MB (23.5 MiB) |
+| `model_draco.glb` | 18.3 MB | 18.4 MB |
+| `web/model_web.glb` | 2.9 MB | 2.9 MB |
+| `web/preview.html` | 5.0 MB | 5.0 MB |
+
 ### v12：漏斗细螺旋条纹 + 更薄更锐的带状鳞片 / fine funnel streaks + crisper strap scales
 - **大形不变**：GLB 大形、洞口规格（外环 Ø40、内核 Ø26、中心 Z=58、凹入 18 m）、包围盒 100 × 48 × 120 m、195,986 三角面、平滑流程不变。v11 备份在 `v11/`（不提交）。
 - **漏斗（重点）**：条纹宽约 0.5 m，比稠密网格顶点间距（约 0.2 m）配合 0.42 m 环宽能表达的更细，所以 v12 不再按顶点存条纹，而是把漏斗的极坐标（r/40、cosθ、sinθ）用 **16 位 PNG 烘焙到 4096**（`COL2_HI=1`），在 `src/compose_v12.py` 中逐纹素生成条纹：相位 `r/0.5 + 3θ/2π`（整数圈，无接缝）向内螺旋，每条条纹亮度随机、沿长度断续。整体以暗色为主，条纹向外渐暗，Ø26 口处为洋红 / 热紫内环。去掉了 v11 的均匀紫色和规则波浪带。网页洞内补光 2200→300（更短的衰减距离），身体褶皱上不再有紫色反光。

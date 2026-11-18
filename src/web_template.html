@@ -151,7 +151,7 @@ try {
       for (const m of mats) {
         if (!m) continue;
         m.flatShading = false;
-        if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 1.8); m.toneMapped = true; }   // v10: emissiveTexture = violet streaks
+        if (m.name === 'BH_Glow_Rim') { m.emissiveIntensity = +(Q.get('glow') ?? 1.0); m.toneMapped = true; }   // v10: emissiveTexture = violet streaks
         if (m.name === 'BH_Skin_Vein') m.emissiveIntensity = 0.9;
         if (m.name === 'BH_Pore_Glow') { m.emissiveIntensity = 0.8; }   // v9: fewer / softer glints
         if (m.name === 'BH_Rim_Wear') { m.envMapIntensity = 1.6; }
