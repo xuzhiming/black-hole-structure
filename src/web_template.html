@@ -172,7 +172,7 @@ try {
         }
         // v8: baked detail normals — strong enough to hide remaining large facets
         if (m.normalMap) {
-          const s = +(Q.get('nrm') ?? 1.5);   // v11: scales   // v10: relief bake is already at full strength
+          const s = +(Q.get('nrm') ?? 1.0);   // v17: 1.0 (1.5 exaggerated facet-like shading); fine detail is in the bake
           m.normalScale.set(s, s);
         }
         // Blender drives the skin's crevice emission from a mesh attribute; glTF can only carry the flat colour -> switch it off here

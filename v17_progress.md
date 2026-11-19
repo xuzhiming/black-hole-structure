@@ -1,0 +1,15 @@
+# v17 progress (anti-origami)
+- [x] v16 backup in v16/
+- [x] diagnosis: dihedral stats v13/v14/v15/v16 (/tmp/v17/dihedral.py), close-up variants /tmp/v17/diag16_* (as_is / nstr0 / no custom normals)
+- [x] v17 geom (src/v17_geom.py), stage L (src/v17_stageL.py, 2-pass decimation, relax), stage B (v16_stageB), compose_v17, final Cycles renders (20:32)
+- [x] model.glb 18.3 MB, skin sharp>30° 3.12 %, verify dims ok, recess 18.01, color_metrics_v17.json
+- [x] web build (rebuild_web.sh 20:41): model_draco 12.6 MB, model_web 1.9 MB, preview.html 3.7 MB
+- [ ] cycles close-ups v17 (/tmp/v17/c17), web close-ups v16/v17, test_preview, comparison images
+- [ ] contact sheet (sheet_v17.py), silhouette overlay, README v17, commit/push, deploy verify, turntable video
+- [x] silhouette_svg_a_v16_v17.png
+- [x] cycles close-ups v17 done
+- [x] test_preview: console errors: 0
+- [x] web close-ups v17
+- [x] closeups_v16_v17.png
+- [x] contact_sheet.png (v17)
+- [x] README v17
