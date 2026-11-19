@@ -37,3 +37,4 @@ video/*.mp4
 video/*.png
 video/frames_v15/
 v15/
+color_metrics_tune.json
