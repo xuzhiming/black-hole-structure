@@ -3,7 +3,7 @@
 import sys, os, time, base64
 from playwright.sync_api import sync_playwright
 W, H = int(os.environ.get('VW', 1920)), int(os.environ.get('VH', 1080)); N = int(os.environ.get('NF', 360))
-OUT = '/workspace/outputs/black_hole_structure/video/frames'; only = [int(x) for x in sys.argv[1:]] or range(N)
+OUT = os.environ.get('OUTDIR', '/workspace/outputs/black_hole_structure/video/frames'); only = [int(x) for x in sys.argv[1:]] or range(N)
 URL = f'https://black-hole-structure.pages.dev/?cb={int(time.time())}'
 def patch(route):
     r = route.fetch(); body = r.text()

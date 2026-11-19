@@ -34,4 +34,10 @@ res = dict(bbox_min=lo.round(3).tolist(), bbox_max=hi.round(3).tolist(), bbox_si
 lipm = (rg > 19.3) & (rg < 20.7)
 if lipm.sum() > 20:
     lip_y = float(np.median(G[lipm][:, 1])); res.update(entrance_plane_y=round(lip_y, 2), recess_entrance_plane_to_core_mouth=round(float(np.median(seam[:, 1])) - lip_y, 2))
+# v15: the entrance plane is the lip crest (front-most glow surface around the Ø40 ring), measured per 10° sector and
+# median-ed; the v14 window (median y of 19.3 < r < 20.7) sat partly on the rounded lip / cone and biased the recess short
+ag = np.arctan2(G[:, 2] - hc[1], G[:, 0] - hc[0]); sec = np.floor((ag + np.pi) / (np.pi / 18)).astype(int); cm = rg > 16.5
+crest = [float(G[cm & (sec == k)][:, 1].min()) for k in range(36) if (cm & (sec == k)).sum() > 5]
+if crest:
+    ly = float(np.median(crest)); res.update(entrance_plane_y_lip_crest=round(ly, 2), recess_lip_crest_to_core_mouth=round(float(np.median(seam[:, 1])) - ly, 2))
 print(json.dumps(res, indent=1)); json.dump(res, open(R + 'verify.json', 'w'), indent=1)

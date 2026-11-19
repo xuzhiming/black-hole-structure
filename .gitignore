@@ -12,6 +12,7 @@ v10/
 v11/
 v12/
 v13/
+v14/
 *.blend1
 *.blend@
 # v7: model.glb is ≤200k (~24 MB) + baked normals; DECIMATE=1 full-res export (~112 MB) must not be committed
@@ -34,3 +35,4 @@ video/frames/
 video/frames_v14/
 video/*.mp4
 video/*.png
+video/frames_v15/
