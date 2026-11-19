@@ -1,6 +1,6 @@
 # colour match metrics: object pixels of reference crops vs renders (same views). Lab means, copper / purple / dark fractions,
 # L* and hue histogram intersections. Usage: python3 color_metrics.py renders_dir [label]  -> prints + writes color_metrics_<label>.json
-import sys, os, json, numpy as np
+import sys, json, numpy as np
 from PIL import Image
 R = '/workspace/outputs/black_hole_structure/'
 def lab(rgb):
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     rdir = sys.argv[1]; label = sys.argv[2] if len(sys.argv) > 2 else 'x'
     out = {}; tot = []
     for v in ['front', 'rear', 'left', 'right', 'top', 'axo']:
-        sr, Lr, hr, Cr = stats(pix(R + os.environ.get('REF_DIR', 'ref') + f'/{v}.png')); sm, Lm, hm, Cm = stats(pix(f'{rdir}/{v}.png'))
+        sr, Lr, hr, Cr = stats(pix(R + f'ref/{v}.png')); sm, Lm, hm, Cm = stats(pix(f'{rdir}/{v}.png'))
         dE = float(np.linalg.norm(np.array([sr['L'], sr['a'], sr['b']]) - np.array([sm['L'], sm['a'], sm['b']])))
         hi_L = hist_int(Lr, Lm, 20, (0, 100)); hi_h = hist_int(hr, hm, 24, (0, 360), np.minimum(Cr, 40), np.minimum(Cm, 40))
         out[v] = dict(ref=sr, model=sm, dE_mean_lab=round(dE, 1), hist_L=hi_L, hist_hue=hi_h); tot.append((dE, hi_L, hi_h))

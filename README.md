@@ -2,6 +2,10 @@
 
 **在线预览 / Live demo:** https://black-hole-structure.pages.dev
 
+> **当前版本：v13**（2026-11-19 回退）。线上页面、`model.glb`、`model_draco.glb`、`web/preview.html`、贴图和渲染图都恢复为 v13（提交 cfd7d08 的内容）。
+> v14–v17 的实验（按新效果图做的程序化重建、镜像修正、纤维层叠、去折纸）都保留在 git 历史里，标签 `v14`、`v15`、`v16`、`v17` 指向各自的提交。下面的版本记录也保留了它们的说明。
+> **Current version: v13** (rolled back on 2026-11-19). The live page and all model / web / texture / render files are v13 again (content of commit cfd7d08). The v14–v17 experiments stay in git history under tags `v14`, `v15`, `v16` and `v17`; their notes are kept in the version log below.
+
 根据参考效果图，用 Blender（Python 脚本，bpy 5.3 无界面运行）程序化生成的"黑洞构筑体"3D 模型，附带基于 Three.js 的网页查看器。查看器支持环绕、辉光和中英文尺寸标注。
 A procedural "black hole structure" 3D model generated in Blender (headless bpy 5.3 Python scripts) from a reference sheet, with a Three.js web viewer (orbit, bloom, CN/EN dimension overlay).
 
@@ -62,7 +66,7 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 
 ## 版本记录 / Version notes
 
-### v17：去折纸（平滑连续曲面） / anti-origami
+### v17（实验，未采用 / experiment, not current）：去折纸（平滑连续曲面） / anti-origami
 - **诊断**（`/tmp/v17/dihedral.py`：皮肤网格相邻面二面角；`src/v17_closeups.py`：近景对照，分别关掉法线贴图、清除自定义法线）：
   - **(a) 主因**：v14–v16 的低模是从带沟槽的高模直接减面得到的。漏斗受保护，占掉约 11.7 万面，皮肤只剩约 7.8 万面（中位边长 1.14 m），表达不了 0.25 m 尺度的纤维槽和孔洞，于是变成大块平面和折角。
   - **(c)**：自定义法线从带沟槽的高模转移过来，低模面片上的着色法线互相矛盾。面片与着色法线的平均偏差：v13 4.1° → v16 33.7°。
@@ -96,7 +100,7 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 | `web/preview.html` | 3.7 MB |
 | `model.blend` | 9.0 MB |
 
-### v16：v15 剩余问题一次修完 / all remaining v15 gaps
+### v16（实验，未采用 / experiment, not current）：v15 剩余问题一次修完 / all remaining v15 gaps
 1. **纤维脊 / 层叠更深**（`src/v16_geom.py`，几何内建）：
    - 纤维槽深 0.13 → 0.24 r，槽更宽（指数 4 → 2.5）；层叠台阶 0.07 → 0.12 r，扇贝边更强（0.12 → 0.18）。
    - 半径 > 0.7 m 的卷须都加（原为 > 0.9 m）。
@@ -139,7 +143,7 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 | `web/preview.html` | 5.3 MB |
 | `model.blend` | 7.6 MB |
 
-### v15：修正左右镜像 + 粗尾 + 纤维层叠 / handedness fix, heavy tail, fibrous lamellae
+### v15（实验，未采用 / experiment, not current）：修正左右镜像 + 粗尾 + 纤维层叠 / handedness fix, heavy tail, fibrous lamellae
 - **尾巴哪里反了**：全局坐标是对的（正视图右手 = +X，正面朝 −Y；背视图右手 = −X），但 v14 的卷须布局整体左右镜像了：
   - 尾巴：原图从洞口下方偏右（X≈+18）离开主体，沿底部扫向左，在左端（X≈−45）向上卷成顺时针（正视）浪头。v14 正好相反：根在左下，扫向右，右下末端逆时针卷。
   - 正面螺旋臂：原图顺时针向外扭出，v14 是逆时针。
@@ -172,7 +176,7 @@ Every push to `main` triggers GitHub Actions, which copies `web/` into `dist/` (
 | `web/preview.html` | 4.7 MB |
 | `model.blend` | 7.4 MB |
 
-### v14：新效果图精细重建（程序化） / fine procedural reconstruction of the new reference sheet
+### v14（实验，未采用 / experiment, not current）：新效果图精细重建（程序化） / fine procedural reconstruction of the new reference sheet
 - **参考**：`ref_v14/reference_sheet.png` + `ref_v14/spec.md`（数值优先于像素）。六视图裁图在 `ref_v14/*.png`。v13 备份在 `v13/`（不提交）。
 - **建模方式（全部程序化，`src/v14_geom.py`）**：带符号距离场（0.25 m 体素，约 5000 万格）→ marching cubes 得到约 174 万面的高模，表面连续光滑，无折纸感。组成部分：
   - 碟形主壳：正面内凹、背面外凸，主要绕 X 轴弯曲，所以侧视是月牙形（上下尖端前伸，中部内收到入口平面）。

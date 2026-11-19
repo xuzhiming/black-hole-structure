@@ -2,7 +2,7 @@
 # model.blend / model.glb, sheet renders (same cameras / lights as v9-v10)
 import bpy, os, sys, json, numpy as np
 H = os.path.dirname(os.path.abspath(__file__)); sys.path.insert(0, H); import rend_common as rc
-C = os.environ.get('V14_CACHE', os.environ.get('V11_CACHE', '/tmp/v11')); ROOT = '/workspace/outputs/black_hole_structure'; TEX = ROOT + '/tex'
+C = os.environ.get('V11_CACHE', '/tmp/v11'); ROOT = '/workspace/outputs/black_hole_structure'; TEX = ROOT + '/tex'
 OUT_R = os.environ.get('OUT_R', ROOT + '/renders'); env = lambda k, d: float(os.environ.get(k, d))
 bpy.ops.wm.open_mainfile(filepath=C + '/B.blend'); scene = bpy.context.scene
 _is = scene.render.image_settings; _is.color_management = 'FOLLOW_SCENE'; _is.color_depth = '8'  # stage B may leave a 16-bit Raw override from the col2 bake
@@ -38,12 +38,12 @@ def pbr(name, emit=None, estr=0.0):
     nt.links.new(a.outputs['Color'], mul.inputs['A']); nt.links.new(o.outputs['Color'], mul.inputs['B']); nt.links.new(mul.outputs['Result'], b.inputs['Base Color'])
     b.inputs['Specular IOR Level'].default_value = env('SPEC', 0.55)
     if emit is not None:
-        if name == 'BH_Glow_Rim': b.inputs['Specular IOR Level'].default_value = env('GSPEC', 0.05)      # funnel: no grey/lavender sheen, light comes from the streaks
+        b.inputs['Specular IOR Level'].default_value = env('GSPEC', 0.05)      # funnel: no grey/lavender sheen, light comes from the streaks
         e = T(nt, emit); nt.links.new(e.outputs['Color'], b.inputs['Emission Color']); b.inputs['Emission Strength'].default_value = estr
     return m
 old = [m for m in me.materials]
 for m in old: m.name = m.name + '_v10old'   # free the names: the web viewer keys its tweaks on BH_Skin_Bronze / BH_Glow_Rim / BH_Core_Black
-mats = [pbr('BH_Skin_Bronze', EMI if env('SKIN_GLOW', 0) > 0 else None, env('SKIN_GLOW', 0)), pbr('BH_Glow_Rim', EMI, env('GLOW', 2.2))]   # v14: skin may glow in crevices
+mats = [pbr('BH_Skin_Bronze'), pbr('BH_Glow_Rim', EMI, env('GLOW', 2.2))]
 core = bpy.data.materials.new('BH_Core_Black'); core.use_nodes = True; cb = core.node_tree.nodes['Principled BSDF']
 cb.inputs['Base Color'].default_value = (0, 0, 0, 1); cb.inputs['Roughness'].default_value = 1; cb.inputs['Specular IOR Level'].default_value = 0
 for i, m in enumerate(mats + [core]): me.materials[i] = m

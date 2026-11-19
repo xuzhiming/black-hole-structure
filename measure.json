@@ -1,56 +1,42 @@
 {
- "source": "procedural v17 (SDF + marching cubes; low from smoothed SDF)",
- "geom": {
-  "vox": 0.25,
-  "Y_E": -9.0,
-  "Y_M": 8.170000000000002,
-  "tubes": 131,
-  "pores": 2551,
-  "verts": 902202,
-  "tris": 1804900,
-  "lo": [
-   -51.60002302341503,
-   -28.0,
-   -1.6000030570756305
+ "source": "user_tripo.glb",
+ "src_tris": 92822,
+ "src_verts": 77460,
+ "boundary_edges_after_weld": 109,
+ "filled_faces": 9,
+ "speck_verts_removed": 54,
+ "non_manifold_after_clean": 36,
+ "src_bbox_size_zup": [
+  82.755,
+  51.728,
+  97.789
+ ],
+ "fit_scale_xyz": [
+  1.2084,
+  0.9279,
+  1.2271
+ ],
+ "src_hole": {
+  "centre_xz": [
+   -2.78,
+   55.13
   ],
-  "shape": [
-   414,
-   225,
-   494
-  ],
-  "bbox_min": [
-   -50.59543692283672,
-   -23.736206531524658,
-   -0.8329763942490924
-  ],
-  "bbox_max": [
-   50.86011339015919,
-   23.59463119506836,
-   120.43343657915484
-  ],
-  "secs": 99.3
+  "floor_y": -7.45,
+  "floor_diam_eq": 20.25,
+  "front_face_y": -23.96,
+  "recess_front_to_floor": 16.5,
+  "y_at_r_floor": -8.71
  },
- "dense_tris": 1804900,
- "low_tris": 195980,
- "conv_scale": [
-  0.2888016998767853,
-  1.5026174783706665
- ],
- "pos_lo": [
-  -55.0,
-  -32.0,
-  -5.0
- ],
- "pos_size": [
-  110.0,
-  64.0,
-  130.0
- ],
- "glow_faces": 21333,
- "core_faces": 2228,
- "version": "v17",
- "tris": 195980,
- "verts": 97888,
+ "warp": {
+  "R_FLOOR": 8.5,
+  "R_LIP": 18.5,
+  "R_OUT": 34.0,
+  "dish": 5.0
+ },
+ "uv_faces_fixed": 67,
+ "version": "v13",
+ "tris": 195992,
+ "verts": 97960,
  "bbox_size": [
   100.0,
   48.0,
@@ -67,14 +53,26 @@
   120.0
  ],
  "hole_centre": [
-  -0.00019121170043945312,
-  8.377540588378906,
-  57.999921798706055
+  -0.0024781227111816406,
+  -3.828282952308655,
+  58.01531982421875
  ],
  "scales": {
-  "note": "v14 procedural",
-  "tubes": 131,
-  "pores": 2551,
-  "vox": 0.25
+  "seeds1": 5390,
+  "seeds2": 25942,
+  "tube_frac": null,
+  "S1": 2.4,
+  "S2": 1.1,
+  "AMP": 0.55,
+  "LOWAMP": 0.22,
+  "disp_p": [
+   -0.497,
+   0.143,
+   0.429
+  ],
+  "rim_mean": 0.06012530684755617,
+  "cav_mean": 0.2580740438090149,
+  "coverage": 0.8233843777385002,
+  "secs": 42
  }
 }
