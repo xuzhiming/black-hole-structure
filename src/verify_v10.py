@@ -30,4 +30,8 @@ res = dict(bbox_min=lo.round(3).tolist(), bbox_max=hi.round(3).tolist(), bbox_si
            ring_d_param=[40.0, 40.0], core_mouth_y=round(float(np.median(seam[:, 1])), 2), front_face_y=round(float(lo[1]), 2),
            recess_front_face_to_core_mouth=round(float(np.median(seam[:, 1]) - lo[1]), 2), core_dish_back_y=round(float(C[:, 1].max()), 2),
            materials=list(parts.keys()))
+# v14: the funnel opens from a local entrance plane (Ø40 lip), not from the global bbox front: recess = core mouth - lip plane
+lipm = (rg > 19.3) & (rg < 20.7)
+if lipm.sum() > 20:
+    lip_y = float(np.median(G[lipm][:, 1])); res.update(entrance_plane_y=round(lip_y, 2), recess_entrance_plane_to_core_mouth=round(float(np.median(seam[:, 1])) - lip_y, 2))
 print(json.dumps(res, indent=1)); json.dump(res, open(R + 'verify.json', 'w'), indent=1)
